@@ -1,6 +1,7 @@
 #include <iostream>
 #include <ctime> 
 #include <cctype>
+#include <string>
 #include <cstring>
 #include <iomanip>
 #include <limits>
@@ -97,6 +98,18 @@ string toLower(const char* s) {
     string r = s;
     for (char& c : r) c = tolower(c);
     return r;
+}
+
+string aString(int n) {
+    char buffer[20];
+    sprintf(buffer, "%d", n);
+    return string(buffer);
+}
+
+string aStringFloat(float n) {
+    char buffer[40];
+    sprintf(buffer, "%.2f", n);
+    return string(buffer);
 }
 
 void convertirAMinusculas(char* cadena) {
@@ -297,6 +310,12 @@ void mostrarProducto(const Producto& p) {
     cout << "Fecha: " << p.fechaRegistro << endl;
 }
 
+const char* obtenerNombreProducto(Tienda* tienda, int idProducto) {
+    int pos = buscarProductoPorID(tienda, idProducto);
+    if (pos == -1) return "Desconocido";
+    return tienda->productos[pos].nombre;
+}
+
 void redimensionarProductos(Tienda* tienda) {
     int nuevaCap = tienda->capacidadProductos * 2;
     Producto* nuevoArray = new Producto[nuevaCap];
@@ -463,6 +482,10 @@ int buscarClientePorID(Tienda* tienda, int id) {
     return -1;
 }
 
+bool existeCliente(Tienda* tienda, int id) {
+    return buscarClientePorID(tienda, id) != -1;
+}
+
 int buscarClientePorCedula(Tienda* tienda, const char* cedula) {
     for (int i = 0; i < tienda->numClientes; i++) {
         if (strcmp(tienda->clientes[i].cedula, cedula) == 0)
@@ -477,6 +500,12 @@ int buscarClientePorNombre(Tienda* tienda, const char* nombre) {
             return i;
     }
     return -1;
+}
+
+const char* obtenerNombreCliente(Tienda* tienda, int idCliente) {
+    int pos = buscarClientePorID(tienda, idCliente);
+    if (pos == -1) return "Desconocido";
+    return tienda->clientes[pos].nombre;
 }
 
 void mostrarCliente(const Cliente& c) {
@@ -523,6 +552,46 @@ void filaCliente(const Cliente& c) {
 
 void pieClientes() {
     lineaClientes("bot");
+}
+
+
+//=======================
+// tabla transacciones
+//=======================
+
+void lineaTrans(const char* tipo) {
+    if (strcmp(tipo, "top") == 0)
+        cout << "+-----------------------------------------------------------------------------------------------------------+\n";
+    else if (strcmp(tipo, "mid") == 0)
+        cout << "¦-----------------------------------------------------------------------------------------------------------¦\n";
+    else if (strcmp(tipo, "sep") == 0)
+        cout << "¦----+----------+----------+----------------------+----------+-----------+------------+---------------------¦\n";
+    else if (strcmp(tipo, "bot") == 0)
+        cout << "+-----------------------------------------------------------------------------------------------------------+\n";
+}
+
+void encabezadoTransacciones() {
+    lineaTrans("top");
+    cout << "¦                                      LISTADO DE TRANSACCIONES                                             ¦\n";
+    lineaTrans("mid");
+    cout << "¦ ID ¦  Tipo    ¦ Producto ¦ Relacionado (Prov/Cliente) ¦ Cantidad ¦  Total    ¦   Fecha    ¦ Descripción     ¦\n";
+    lineaTrans("sep");
+}
+
+void filaTransaccion(const Transaccion& t) {
+    cout << "¦ "
+         << setw(2)  << left << t.id << " ¦ "
+         << setw(8)  << left << t.tipo << " ¦ "
+         << setw(8)  << left << t.idProducto << " ¦ "
+         << setw(22) << left << t.idRelacionado << " ¦ "
+         << setw(8)  << left << t.cantidad << " ¦ "
+         << setw(9)  << left << t.total << " ¦ "
+         << setw(10) << left << t.fecha << " ¦ "
+         << setw(15) << left << t.descripcion << " ¦\n";
+}
+
+void pieTransacciones() {
+    lineaTrans("bot");
 }
 
 //===============
@@ -579,6 +648,54 @@ void liberarTienda(Tienda* tienda) {
     tienda->numClientes = 0;
     tienda->numTransacciones = 0;
 }
+
+void mostrarDetalleTransaccion(Tienda* tienda, const Transaccion& t) {
+    const char* nombreProducto = obtenerNombreProducto(tienda, t.idProducto);
+    const char* nombreRelacionado = (strcmp(t.tipo, "VENTA") == 0)
+        ? obtenerNombreCliente(tienda, t.idRelacionado)
+        : obtenerNombreProveedor(tienda, t.idRelacionado);
+
+    cout << "+-----------------------------------------------------------+\n";
+    cout << "¦              DETALLE DE TRANSACCIÓN                       ¦\n";
+    cout << "¦-----------------------------------------------------------¦\n";
+
+    cout << "¦ ID Transacción: " << setw(43) << left << t.id << "¦\n";
+    cout << "¦ Tipo: " << setw(54) << left << t.tipo << "¦\n";
+
+    {
+        string linea = string(nombreProducto) + " (ID: " + aString(t.idProducto) + ")";
+        cout << "¦ Producto: " << setw(47) << left << linea << "¦\n";
+    }
+
+    {
+        string etiqueta = (strcmp(t.tipo, "VENTA") == 0) ? "Cliente: " : "Proveedor: ";
+        string linea = string(nombreRelacionado) + " (ID: " + aString(t.idRelacionado) + ")";
+        cout << "¦ " << etiqueta << setw(48 - etiqueta.size()) << left << linea << "¦\n";
+    }
+
+    {
+        string linea = aString(t.cantidad) + " unidades";
+        cout << "¦ Cantidad: " << setw(47) << left << linea << "¦\n";
+    }
+
+    {
+        char buffer[50];
+        sprintf(buffer, "$%.2f", t.precioUnitario);
+        cout << "¦ Precio Unitario: " << setw(40) << left << buffer << "¦\n";
+    }
+
+    {
+        char buffer[50];
+        sprintf(buffer, "$%.2f", t.total);
+        cout << "¦ Total: " << setw(50) << left << buffer << "¦\n";
+    }
+
+    cout << "¦ Fecha: " << setw(52) << left << t.fecha << "¦\n";
+    cout << "¦ Descripción: " << setw(44) << left << t.descripcion << "¦\n";
+
+    cout << "+-----------------------------------------------------------+\n";
+}
+
 
 //======================
 //2.2.1
@@ -993,6 +1110,45 @@ void eliminarProducto(Tienda* tienda) {
     cout << "Producto eliminado exitosamente.\n";
 }
 
+void menuProductos(Tienda* tienda) {
+    int opcion;
+
+    do {
+        system("cls");
+        cout << "+-------------------------------------------+\n";
+        cout << "¦        GESTIÓN DE PRODUCTOS              ¦\n";
+        cout << "+-------------------------------------------+\n\n";
+
+        cout << "1. Registrar nuevo producto\n";
+        cout << "2. Buscar producto\n";
+        cout << "3. Actualizar producto\n";
+        cout << "4. Actualizar stock manualmente\n";
+        cout << "5. Listar todos los productos\n";
+        cout << "6. Eliminar producto\n";
+        cout << "0. Volver al menú principal\n\n";
+        cout << "Seleccione una opción: ";
+
+        cin >> opcion;
+        cin.ignore();
+
+        system("cls");
+
+        switch (opcion) {
+            case 1: crearProducto(tienda); break;
+            case 2: buscarProducto(tienda); break;
+            case 3: actualizarProducto(tienda); break;
+            case 4: actualizarStockProducto(tienda); break;
+            case 5: listarProductos(tienda); break;
+            case 6: eliminarProducto(tienda); break;
+            case 0: break;
+            default: cout << "Opción inválida.\n";
+        }
+
+        if (opcion != 0) system("pause");
+
+    } while (opcion != 0);
+}
+
 //2.3
 
 void crearProveedor(Tienda* tienda) {
@@ -1272,6 +1428,43 @@ void eliminarProveedor(Tienda* tienda) {
     tienda->numProveedores--;
 
     cout << "Proveedor eliminado exitosamente.\n";
+}
+
+void menuProveedores(Tienda* tienda) {
+    int opcion;
+
+    do {
+        system("cls");
+        cout << "+-------------------------------------------+\n";
+        cout << "¦       GESTIÓN DE PROVEEDORES             ¦\n";
+        cout << "+-------------------------------------------+\n\n";
+
+        cout << "1. Registrar proveedor\n";
+        cout << "2. Buscar proveedor\n";
+        cout << "3. Actualizar proveedor\n";
+        cout << "4. Listar proveedores\n";
+        cout << "5. Eliminar proveedor\n";
+        cout << "0. Volver al menú principal\n\n";
+        cout << "Seleccione una opción: ";
+
+        cin >> opcion;
+        cin.ignore();
+
+        system("cls");
+
+        switch (opcion) {
+            case 1: crearProveedor(tienda); break;
+            case 2: buscarProveedor(tienda); break;
+            case 3: actualizarProveedor(tienda); break;
+            case 4: listarProveedores(tienda); break;
+            case 5: eliminarProveedor(tienda); break;
+            case 0: break;
+            default: cout << "Opción inválida.\n";
+        }
+
+        if (opcion != 0) system("pause");
+
+    } while (opcion != 0);
 }
 
 //=======================
@@ -1567,46 +1760,87 @@ void eliminarCliente(Tienda* tienda) {
     cout << "Cliente eliminado exitosamente.\n";
 }
 
+void menuClientes(Tienda* tienda) {
+    int opcion;
+
+    do {
+        system("cls");
+        cout << "+-------------------------------------------+\n";
+        cout << "¦         GESTIÓN DE CLIENTES              ¦\n";
+        cout << "+-------------------------------------------+\n\n";
+
+        cout << "1. Registrar cliente\n";
+        cout << "2. Buscar cliente\n";
+        cout << "3. Actualizar cliente\n";
+        cout << "4. Listar clientes\n";
+        cout << "5. Eliminar cliente\n";
+        cout << "0. Volver al menú principal\n\n";
+        cout << "Seleccione una opción: ";
+
+        cin >> opcion;
+        cin.ignore();
+
+        system("cls");
+
+        switch (opcion) {
+            case 1: crearCliente(tienda); break;
+            case 2: buscarCliente(tienda); break;
+            case 3: actualizarCliente(tienda); break;
+            case 4: listarClientes(tienda); break;
+            case 5: eliminarCliente(tienda); break;
+            case 0: break;
+            default: cout << "Opción inválida.\n";
+        }
+
+        if (opcion != 0) system("pause");
+
+    } while (opcion != 0);
+}
+
+//==============
 // 2.5
+//==============
 
 void registrarCompra(Tienda* tienda) {
-    cout << "REGISTRAR COMPRA";
+    cout << "\n=== REGISTRAR COMPRA ===\n";
 
     int idProd;
     cout << "Ingrese ID del producto (0 para cancelar): ";
     cin >> idProd;
     if (idProd == 0) return;
 
-    int posProd = buscarProductoPorID(tienda, idProd);
-    if (posProd == -1) {
-        cout << "ERROR: El producto no existe.";
+    if (!existeProducto(tienda, idProd)) {
+        cout << "ERROR: El producto no existe.\n";
         return;
     }
+
+    int posProd = buscarProductoPorID(tienda, idProd);
 
     int idProv;
     cout << "Ingrese ID del proveedor (0 para cancelar): ";
     cin >> idProv;
     if (idProv == 0) return;
 
-    int posProv = buscarProveedorPorID(tienda, idProv);
-    if (posProv == -1) {
-        cout << "ERROR: El proveedor no existe.";
+    if (!existeProveedor(tienda, idProv)) {
+        cout << "ERROR: El proveedor no existe.\n";
         return;
     }
 
-    int cantidad;
-    cout << "Cantidad comprada (0 para cancelar): ";
-    cin >> cantidad;
-    if (cantidad == 0) return;
+    int posProv = buscarProveedorPorID(tienda, idProv);
+
+    int cantidad = solicitarEnteroPositivo("Cantidad comprada (>0): ");
 
     float precioUnit;
-    cout << "Precio unitario (0 para cancelar): ";
+    cout << "Precio unitario (>0): ";
     cin >> precioUnit;
-    if (precioUnit == 0) return;
+    if (precioUnit <= 0) {
+        cout << "ERROR: El precio debe ser mayor a 0.\n";
+        return;
+    }
 
     float total = cantidad * precioUnit;
 
-    cout << "RESUMEN DE COMPRA";
+    cout << "\n=== RESUMEN DE COMPRA ===\n";
     cout << "Producto: " << tienda->productos[posProd].nombre << endl;
     cout << "Proveedor: " << tienda->proveedores[posProv].nombre << endl;
     cout << "Cantidad: " << cantidad << endl;
@@ -1630,27 +1864,29 @@ void registrarCompra(Tienda* tienda) {
     obtenerFechaActual(t.fecha);
     strcpy(t.descripcion, "Compra a proveedor");
 
-    cout << "Compra registrada exitosamente.";
+    cout << "\nCompra registrada exitosamente.\n";
 }
+
 
 
 // 2.5.2
 
   void registrarVenta(Tienda* tienda) {
-    cout << "REGISTRAR VENTA";
+    cout << "\n=== REGISTRAR VENTA ===\n";
 
     int idProd;
     cout << "Ingrese ID del producto (0 para cancelar): ";
     cin >> idProd;
     if (idProd == 0) return;
 
-    int posProd = buscarProductoPorID(tienda, idProd);
-    if (posProd == -1) {
-        cout << "ERROR: El producto no existe.";
+    if (!existeProducto(tienda, idProd)) {
+        cout << "ERROR: El producto no existe.\n";
         return;
     }
 
+    int posProd = buscarProductoPorID(tienda, idProd);
     Producto& p = tienda->productos[posProd];
+
     cout << "Stock disponible: " << p.stock << endl;
 
     int idCli;
@@ -1658,26 +1894,24 @@ void registrarCompra(Tienda* tienda) {
     cin >> idCli;
     if (idCli == 0) return;
 
-    int posCli = buscarClientePorID(tienda, idCli);
-    if (posCli == -1) {
-        cout << "ERROR: El cliente no existe.";
+    if (!existeCliente(tienda, idCli)) {
+        cout << "ERROR: El cliente no existe.\n";
         return;
     }
 
-    int cantidad;
-    cout << "Cantidad vendida (0 para cancelar): ";
-    cin >> cantidad;
-    if (cantidad == 0) return;
+    int posCli = buscarClientePorID(tienda, idCli);
+
+    int cantidad = solicitarEnteroPositivo("Cantidad vendida (>0): ");
 
     if (cantidad > p.stock) {
-        cout << "ERROR: Stock insuficiente.";
+        cout << "ERROR: Stock insuficiente.\n";
         return;
     }
 
     float precioUnit = p.precio;
     float total = precioUnit * cantidad;
 
-    cout << "RESUMEN DE VENTA";
+    cout << "\n=== RESUMEN DE VENTA ===\n";
     cout << "Producto: " << p.nombre << endl;
     cout << "Cliente: " << tienda->clientes[posCli].nombre << endl;
     cout << "Cantidad: " << cantidad << endl;
@@ -1701,21 +1935,22 @@ void registrarCompra(Tienda* tienda) {
     obtenerFechaActual(t.fecha);
     strcpy(t.descripcion, "Venta a cliente");
 
-    cout << "Venta registrada exitosamente.";
+    cout << "\nVenta registrada exitosamente.\n";
 }
+
 
 
 //2.5.3
 
 void buscarTransacciones(Tienda* tienda) {
-    cout << "BUSCAR TRANSACCIONES";
-    cout << "1. Por ID";
-    cout << "2. Por ID de producto";
-    cout << "3. Por ID de cliente";
-    cout << "4. Por ID de proveedor";
-    cout << "5. Por fecha (YYYY-MM-DD)";
-    cout << "6. Por tipo (COMPRA/VENTA)";
-    cout << "0. Cancelar";
+    cout << "\n=== BUSCAR TRANSACCIONES ===\n";
+    cout << "1. Por ID\n";
+    cout << "2. Por ID de producto\n";
+    cout << "3. Por ID de cliente\n";
+    cout << "4. Por ID de proveedor\n";
+    cout << "5. Por fecha (YYYY-MM-DD)\n";
+    cout << "6. Por tipo (COMPRA/VENTA)\n";
+    cout << "0. Cancelar\n";
     cout << "Opción: ";
 
     int op;
@@ -1727,7 +1962,7 @@ void buscarTransacciones(Tienda* tienda) {
     char filtro[50];
     int id;
 
-    cout << "RESULTADOS";
+    cout << "\n=== RESULTADOS ===\n";
 
     for (int i = 0; i < tienda->numTransacciones; i++) {
         Transaccion& t = tienda->transacciones[i];
@@ -1735,89 +1970,69 @@ void buscarTransacciones(Tienda* tienda) {
 
         switch (op) {
             case 1:
-                cout << "ID (0 para cancelar): ";
+                cout << "ID: ";
                 cin >> id;
-                if (id == 0) return;
                 coincide = (t.id == id);
                 break;
 
             case 2:
-                cout << "ID Producto (0 para cancelar): ";
+                cout << "ID Producto: ";
                 cin >> id;
-                if (id == 0) return;
                 coincide = (t.idProducto == id);
                 break;
 
             case 3:
-                cout << "ID Cliente (0 para cancelar): ";
+                cout << "ID Cliente: ";
                 cin >> id;
-                if (id == 0) return;
                 coincide = (strcmp(t.tipo, "VENTA") == 0 && t.idRelacionado == id);
                 break;
 
             case 4:
-                cout << "ID Proveedor (0 para cancelar): ";
+                cout << "ID Proveedor: ";
                 cin >> id;
-                if (id == 0) return;
                 coincide = (strcmp(t.tipo, "COMPRA") == 0 && t.idRelacionado == id);
                 break;
 
             case 5:
-                solicitarString("Fecha (o CANCELAR): ", filtro, 11);
-                if (strcmp(filtro, "CANCELAR") == 0) return;
+                solicitarString("Fecha: ", filtro, 11);
                 coincide = (strcmp(t.fecha, filtro) == 0);
                 break;
 
-            case 6:
-                solicitarString("Tipo (o CANCELAR): ", filtro, 10);
-                if (strcmp(filtro, "CANCELAR") == 0) return;
-                convertirAMinusculas(filtro);
-                coincide = (toLower(t.tipo) == filtro);
+            case 6: {
+                solicitarString("Tipo (COMPRA/VENTA): ", filtro, 10);
+                string tipoFiltro = toLower(filtro);
+                string tipoTrans = toLower(t.tipo);
+                coincide = (tipoFiltro == tipoTrans);
                 break;
+            }
         }
 
         if (coincide) {
-            cout << "ID: " << t.id
-                 << " | Tipo: " << t.tipo
-                 << " | Producto: " << t.idProducto
-                 << " | Relacionado: " << t.idRelacionado
-                 << " | Cantidad: " << t.cantidad
-                 << " | Total: " << t.total
-                 << " | Fecha: " << t.fecha << endl;
-        }
-    }
+    mostrarDetalleTransaccion(tienda, t);
 }
 
+    }
+}
 
 //2.5.4
 
 void listarTransacciones(Tienda* tienda) {
     if (tienda->numTransacciones == 0) {
-        cout << "No hay transacciones registradas.";
+        cout << "No hay transacciones registradas.\n";
         return;
     }
 
-    cout << "\n=== LISTADO DE TRANSACCIONES ===\n";
-    cout << "(Presione 0 para cancelar y volver al menú)\n\n";
-
-    cout << "ID | Tipo | Producto | Cliente/Proveedor | Cantidad | Total | Fecha\n";
+    encabezadoTransacciones();
 
     for (int i = 0; i < tienda->numTransacciones; i++) {
-        Transaccion& t = tienda->transacciones[i];
-
-        cout << t.id << " | "
-             << t.tipo << " | "
-             << t.idProducto << " | "
-             << t.idRelacionado << " | "
-             << t.cantidad << " | "
-             << t.total << " | "
-             << t.fecha << endl;
+        filaTransaccion(tienda->transacciones[i]);
     }
 
-    int cancelar;
-    cout << "Ingrese 0 para volver: ";
-    cin >> cancelar;
+    pieTransacciones();
+
+    cout << "\nTotal de transacciones: " << tienda->numTransacciones << "\n";
 }
+
 
 
 //2.5.5
@@ -1835,17 +2050,13 @@ void cancelarTransaccion(Tienda* tienda) {
             pos = i;
 
     if (pos == -1) {
-        cout << "ERROR: Transacción no encontrada.";
+        cout << "ERROR: Transacción no encontrada.\n";
         return;
     }
 
-    Transaccion& t = tienda->transacciones[pos];
+    Transaccion t = tienda->transacciones[pos];
 
-    cout << "\n=== DETALLES ===\n";
-    cout << "Tipo: " << t.tipo << endl;
-    cout << "Producto: " << t.idProducto << endl;
-    cout << "Cantidad: " << t.cantidad << endl;
-    cout << "Total: " << t.total << endl;
+    mostrarDetalleTransaccion(tienda, t);
 
     if (!confirmar("¿Cancelar transacción? (S/N): ")) return;
 
@@ -1856,11 +2067,13 @@ void cancelarTransaccion(Tienda* tienda) {
     else
         tienda->productos[posProd].stock += t.cantidad;
 
-    strcpy(t.descripcion, "CANCELADA");
+    for (int i = pos; i < tienda->numTransacciones - 1; i++)
+        tienda->transacciones[i] = tienda->transacciones[i + 1];
 
-    cout << "Transacción cancelada y stock revertido.";
+    tienda->numTransacciones--;
+
+    cout << "Transacción cancelada y stock revertido.\n";
 }
-
 
 void menuTransacciones(Tienda* tienda) {
     int opcion;
@@ -1902,7 +2115,6 @@ void menuTransacciones(Tienda* tienda) {
 
     } while (opcion != 0);
 }
-
 //main 
 
 int main() {
@@ -1933,81 +2145,36 @@ int main() {
 
     int opcion;
 
-    do {
-        system("cls");
-        cout << "===A&S TECHNOLOGY===\n";
-        cout << "=======================\n";
-        cout << "=== MENU PRINCIPAL ===\n";
-        cout << "1. Crear producto\n";
-        cout << "2. Buscar producto\n";
-        cout << "3. Actualizar producto\n";
-        cout << "4. Actualizar stock\n";
-        cout << "5. Eliminar producto\n";
-        cout << "6. Listar productos\n";
-        cout << "-------------------------------\n";
-        cout << "7. Crear proveedor\n";
-        cout << "8. Buscar proveedor\n";
-        cout << "9. Actualizar proveedor\n";
-        cout << "10. Eliminar proveedor\n";
-        cout << "11. Listar proveedores\n";
-        cout << "-------------------------------\n";
-        cout<< "12. Crear cliente\n";
-		cout<< "13. Buscar cliente\n";
-		cout<< "14. Actualizar cliente\n";
-		cout<< "15. Eliminar cliente\n";
-		cout<< "16. Listar clientes\n";
-		cout << "-------------------------------\n";
-		cout << "17. Transacciones\n";
-		cout << "-------------------------------\n";
-        cout << "0. Salir\n";
-        cout << "Seleccione una opción: ";
-        cin >> opcion;
+ do {
+    system("cls");
+    cout << "+-------------------------------------------+\n";
+    cout << "¦   SISTEMA DE GESTIÓN DE INVENTARIO        ¦\n";
+    cout << "¦   A&S TECHNOLOGY                          ¦\n";
+    cout << "+-------------------------------------------+\n\n";
 
-        system("cls");
+    cout << "1. Gestión de Productos\n";
+    cout << "2. Gestión de Proveedores\n";
+    cout << "3. Gestión de Clientes\n";
+    cout << "4. Gestión de Transacciones\n";
+    cout << "5. Salir\n\n";
+    cout << "Seleccione una opción: ";
 
-        switch (opcion) {
-            // Productos
-            case 1: crearProducto(&tienda); break;
-            case 2: buscarProducto(&tienda); break;
-            case 3: actualizarProducto(&tienda); break;
-            case 4: actualizarStockProducto(&tienda); break;
-            case 5: eliminarProducto(&tienda); break;
-            case 6: listarProductos(&tienda); break;
+    cin >> opcion;
+    cin.ignore();
 
-            // Proveedores
-            case 7: crearProveedor(&tienda); break;
-            case 8: buscarProveedor(&tienda); break;
-            case 9: actualizarProveedor(&tienda); break;
-            case 10: eliminarProveedor(&tienda); break;
-            case 11: listarProveedores(&tienda); break;
-			
-			// Clientes
-			case 12: crearCliente(&tienda); break; 
-			case 13: buscarCliente(&tienda); break; 
-			case 14: actualizarCliente(&tienda); break; 
-			case 15: eliminarCliente(&tienda); break; 
-			case 16: listarClientes(&tienda); break;
-			
-			// TRANSACCIONES 
-			case 17: menuTransacciones(&tienda); break;
-			
-            case 0:
-                cout << "Saliendo...\n";
-                break;
+    switch (opcion) {
+        case 1: menuProductos(&tienda); break;
+        case 2: menuProveedores(&tienda); break;
+        case 3: menuClientes(&tienda); break;
+        case 4: menuTransacciones(&tienda); break;
+        case 5: cout << "Saliendo...\n"; break;
+        default: cout << "Opción inválida.\n";
+    }
 
-            default:
-                cout << "Opción inválida.\n";
-        }
+    if (opcion != 5) system("pause");
 
-        if (opcion != 0) {
-            cout << "\n";
-            system("pause");
-        }
+} while (opcion != 5);
 
-    } while (opcion != 0);
-
-    // Liberar memoria
-    liberarTienda(&tienda);
 
     return 0;
 }
