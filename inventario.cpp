@@ -106,12 +106,6 @@ string aString(int n) {
     return string(buffer);
 }
 
-string aStringFloat(float n) {
-    char buffer[40];
-    sprintf(buffer, "%.2f", n);
-    return string(buffer);
-}
-
 void convertirAMinusculas(char* cadena) {
     for (int i = 0; cadena[i]; i++)
         cadena[i] = tolower(cadena[i]);
