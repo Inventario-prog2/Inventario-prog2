@@ -1,5 +1,4 @@
 # Inventario-prog2
-actividad universitaria
 Este programa implementa un sistema de gestión de inventario para una tienda, desarrollado en C++ utilizando memoria dinámica, estructuras personalizadas y un menú interactivo. Permite administrar productos, proveedores, clientes y transacciones, cumpliendo con los requisitos de modularidad, validaciones y redimensionamiento de arreglos exigidos en el proyecto.
 
 Inicialización:  
