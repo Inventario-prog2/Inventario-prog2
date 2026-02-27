@@ -1,0 +1,2015 @@
+#include <iostream>
+#include <ctime> 
+#include <cctype>
+#include <cstring>
+#include <iomanip>
+#include <limits>
+#include <locale.h>
+#include <windows.h>
+
+using namespace std;
+
+//1.1 Estructura Producto
+struct Producto {
+    int id;                    // Identificador �nico (autoincremental)
+    char codigo[20];           // C�digo del producto (ej: "PROD-001")
+    char nombre[100];          // Nombre del producto
+    char descripcion[200];     // Descripci�n del producto
+    int idProveedor;           // ID del proveedor asociado
+    float precio;              // Precio unitario
+    int stock;                 // Cantidad en inventario
+    char fechaRegistro[11];    // Formato: YYYY-MM-DD
+};
+
+//1.2 Estructura Proveedor
+
+struct Proveedor {
+    int id;                    // Identificador �nico (autoincremental)
+    char nombre[100];          // Nombre del proveedor
+    char rif[20];              // RIF o identificaci�n fiscal
+    char telefono[20];         // Tel�fono de contacto
+    char email[100];           // Correo electr�nico
+    char direccion[200];       // Direcci�n f�sica
+    char fechaRegistro[11];    // Formato: YYYY-MM-DD
+};
+
+//1.3 Estructura Cliente
+
+struct Cliente {
+    int id;                    // Identificador �nico (autoincremental)
+    char nombre[100];          // Nombre completo del cliente
+    char cedula[20];           // C�dula o RIF
+    char telefono[20];         // Tel�fono de contacto
+    char email[100];           // Correo electr�nico
+    char direccion[200];       // Direcci�n f�sica
+    char fechaRegistro[11];    // Formato: YYYY-MM-DD
+};
+
+//1.4 Estructura Transacci�n (CASO ESPECIAL: Esta estructura puede separarse como se coment� en clase, tienen libertad de hacerlo.)
+
+struct Transaccion {
+    int id;                    // Identificador �nico (autoincremental)
+    char tipo[10];             // "COMPRA" o "VENTA"
+    int idProducto;            // ID del producto involucrado
+    int idRelacionado;         // ID del proveedor (compra) o cliente (venta)
+    int cantidad;              // Cantidad de unidades
+    float precioUnitario;      // Precio por unidad en esta transacci�n
+    float total;               // cantidad * precioUnitario
+    char fecha[11];            // Formato: YYYY-MM-DD
+    char descripcion[200];     // Notas adicionales (opcional)
+};
+
+//1.5 Estructura Principal: Tienda
+
+struct Tienda {
+    char nombre[100];          // Nombre de la tienda
+    char rif[20];              // RIF de la tienda
+    
+    // Arrays din�micos de entidades
+    Producto* productos;
+    int numProductos;
+    int capacidadProductos;
+    
+    Proveedor* proveedores;
+    int numProveedores;
+    int capacidadProveedores;
+    
+    Cliente* clientes;
+    int numClientes;
+    int capacidadClientes;
+    
+    Transaccion* transacciones;
+    int numTransacciones;
+    int capacidadTransacciones;
+    
+    // Contadores para IDs autoincrementales
+    int siguienteIdProducto;
+    int siguienteIdProveedor;
+    int siguienteIdCliente;
+    int siguienteIdTransaccion;
+};
+
+//==============
+//verificaciones y utilidades
+//==============
+
+string toLower(const char* s) {
+    string r = s;
+    for (char& c : r) c = tolower(c);
+    return r;
+}
+
+void convertirAMinusculas(char* cadena) {
+    for (int i = 0; cadena[i]; i++)
+        cadena[i] = tolower(cadena[i]);
+}
+
+bool contiene(const char* campo, const string& filtro) {
+    string a = toLower(campo);
+    return a.find(filtro) != string::npos;
+}
+bool existeProveedor(Tienda* tienda, int idProveedor) {
+    for (int i = 0; i < tienda->numProveedores; i++) {
+        if (tienda->proveedores[i].id == idProveedor)
+            return true;
+    }
+    return false;
+}
+
+bool codigoProductoDuplicado(Tienda* tienda, const char* codigo, int idIgnorar = -1) {
+    for (int i = 0; i < tienda->numProductos; i++) {
+        if (tienda->productos[i].id == idIgnorar) continue;
+        if (strcmp(tienda->productos[i].codigo, codigo) == 0)
+            return true;
+    }
+    return false;
+}
+
+void obtenerFechaActual(char* buffer) {
+    time_t t = time(nullptr);
+    tm* fecha = localtime(&t);
+    sprintf(buffer, "%04d-%02d-%02d",
+            fecha->tm_year + 1900,
+            fecha->tm_mon + 1,
+            fecha->tm_mday);
+}
+
+bool validarFecha(const char* fecha) {
+    if (strlen(fecha) != 10) return false;
+    if (fecha[4] != '-' || fecha[7] != '-') return false;
+
+    int anio = atoi(fecha);
+    int mes = atoi(fecha + 5);
+    int dia = atoi(fecha + 8);
+
+    if (anio < 1900 || anio > 2100) return false;
+    if (mes < 1 || mes > 12) return false;
+    if (dia < 1 || dia > 31) return false;
+
+    return true;
+}
+
+const char* obtenerNombreProveedor(Tienda* tienda, int idProveedor) {
+    for (int i = 0; i < tienda->numProveedores; i++) {
+        if (tienda->proveedores[i].id == idProveedor)
+            return tienda->proveedores[i].nombre;
+    }
+    return "Desconocido";
+}
+
+void solicitarString(const char* mensaje, char* destino, int maxLen,
+                     bool (*validador)(const char*) = nullptr,
+                     const char* mensajeError = "ERROR: Valor inv�lido.\n") 
+{
+    while (true) {
+        cout << mensaje;
+        cin.getline(destino, maxLen);
+
+        if (strlen(destino) == 0) {
+            cout << "ERROR: No puede estar vac�o.\n";
+            continue;
+        }
+
+        if (validador != nullptr && !validador(destino)) {
+            cout << mensajeError;
+            continue;
+        }
+
+        break;
+    }
+}
+
+bool sinEspacios(const char* texto) {
+    for (int i = 0; texto[i] != '\0'; i++)
+        if (texto[i] == ' ')
+            return false;
+    return true;
+}
+
+
+bool emailValido(const char* email) {
+    const char* at = strchr(email, '@');
+    if (!at) return false;
+
+    const char* punto = strchr(at, '.');
+    if (!punto) return false;
+
+    return true;
+}
+
+bool rifDuplicado(Tienda* tienda, const char* rif, int idIgnorar = -1) {
+    for (int i = 0; i < tienda->numProveedores; i++) {
+        if (tienda->proveedores[i].id == idIgnorar) continue;
+        if (strcmp(tienda->proveedores[i].rif, rif) == 0)
+            return true;
+    }
+    return false;
+}
+
+bool clienteDuplicado(Tienda* tienda, const char* cedula, int idIgnorar = -1) {
+    for (int i = 0; i < tienda->numClientes; i++) {
+        if (tienda->clientes[i].id == idIgnorar) continue;
+        if (strcmp(tienda->clientes[i].cedula, cedula) == 0)
+            return true;
+    }
+    return false;
+}
+
+bool confirmar(const char* mensaje) {
+    char op[10];
+    cout << mensaje;
+    cin >> op;
+    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // <- clave
+
+    return toupper(op[0]) == 'S';
+}
+
+
+int solicitarEnteroPositivo(const char* mensaje) {
+    int valor;
+    cout << mensaje;
+    cin >> valor;
+
+    while (valor <= 0) {
+        cout << "ERROR: Debe ser mayor a 0.\n";
+        cout << mensaje;
+        cin >> valor;
+    }
+    return valor;
+}
+int solicitarEnteroNoNegativo(const char* mensaje) {
+    int valor;
+    cout << mensaje;
+    cin >> valor;
+
+    while (valor < 0) {
+        cout << "ERROR: Debe ser >= 0.\n";
+        cout << mensaje;
+        cin >> valor;
+    }
+    return valor;
+}
+
+
+int buscarProductoPorID(Tienda* tienda, int id) {
+    for (int i = 0; i < tienda->numProductos; i++)
+        if (tienda->productos[i].id == id)
+            return i;
+    return -1;
+}
+
+bool existeProducto(Tienda* tienda, int id) {
+    return buscarProductoPorID(tienda, id) != -1;
+}
+
+int* buscarProductosPorNombre(Tienda* tienda, const char* nombre, int* numResultados) {
+    *numResultados = 0;
+
+    // Primera pasada: contar coincidencias
+    for (int i = 0; i < tienda->numProductos; i++) {
+        if (strstr(tienda->productos[i].nombre, nombre) != nullptr)
+            (*numResultados)++;
+    }
+
+    if (*numResultados == 0)
+        return nullptr;
+
+    // Crear array din�mico
+    int* resultados = new int[*numResultados];
+    int pos = 0;
+
+    // Segunda pasada: guardar �ndices
+    for (int i = 0; i < tienda->numProductos; i++) {
+        if (strstr(tienda->productos[i].nombre, nombre) != nullptr)
+            resultados[pos++] = i;
+    }
+
+    return resultados;
+}
+
+void mostrarProducto(const Producto& p) {
+    cout << "C�digo: " << p.codigo << endl;
+    cout << "Nombre: " << p.nombre << endl;
+    cout << "Descripci�n: " << p.descripcion << endl;
+    cout << "Proveedor ID: " << p.idProveedor << endl;
+    cout << "Precio: " << p.precio << endl;
+    cout << "Stock: " << p.stock << endl;
+    cout << "Fecha: " << p.fechaRegistro << endl;
+}
+
+void redimensionarProductos(Tienda* tienda) {
+    int nuevaCap = tienda->capacidadProductos * 2;
+    Producto* nuevoArray = new Producto[nuevaCap];
+
+    for (int i = 0; i < tienda->numProductos; i++) {
+        nuevoArray[i] = tienda->productos[i];
+    }
+
+    delete[] tienda->productos;
+    tienda->productos = nuevoArray;
+    tienda->capacidadProductos = nuevaCap;
+}
+
+void redimensionarProveedores(Tienda* tienda) {
+    int nuevaCap = tienda->capacidadProveedores * 2;
+    Proveedor* nuevoArray = new Proveedor[nuevaCap];
+
+    for (int i = 0; i < tienda->numProveedores; i++) {
+        nuevoArray[i] = tienda->proveedores[i];
+    }
+
+    delete[] tienda->proveedores;
+    tienda->proveedores = nuevoArray;
+    tienda->capacidadProveedores = nuevaCap;
+}
+
+void redimensionarClientes(Tienda* tienda) {
+    int nuevaCap = tienda->capacidadClientes * 2;
+    Cliente* nuevoArray = new Cliente[nuevaCap];
+
+    for (int i = 0; i < tienda->numClientes; i++) {
+        nuevoArray[i] = tienda->clientes[i];
+    }
+
+    delete[] tienda->clientes;
+    tienda->clientes = nuevoArray;
+    tienda->capacidadClientes = nuevaCap;
+}
+
+void redimensionarTransacciones(Tienda* tienda) {
+    int nuevaCap = tienda->capacidadTransacciones * 2;
+    Transaccion* nuevoArray = new Transaccion[nuevaCap];
+
+    for (int i = 0; i < tienda->numTransacciones; i++) {
+        nuevoArray[i] = tienda->transacciones[i];
+    }
+
+    delete[] tienda->transacciones;
+    tienda->transacciones = nuevoArray;
+    tienda->capacidadTransacciones = nuevaCap;
+}
+
+
+//================
+//tabla producto
+//================
+
+//linea horizontal
+void linea(const char* tipo) {
+    if (strcmp(tipo, "top") == 0)
+        cout << "+--------------------------------------------------------------------------+\n";
+    else if (strcmp(tipo, "mid") == 0)
+        cout << "�--------------------------------------------------------------------------�\n";
+    else if (strcmp(tipo, "sep") == 0)
+        cout << "�----+-----------+------------------+--------------+-------+--------+------�\n";
+    else if (strcmp(tipo, "bot") == 0)
+        cout << "+--------------------------------------------------------------------------+\n";
+}
+
+//encabezado
+void encabezadoProductos() {
+    linea("top");
+    cout << "�                         LISTADO DE PRODUCTOS                             �\n";
+    linea("mid");
+    cout << "� ID �  C�digo   �     Nombre       �  Proveedor   � Precio� Stock  � Fecha�\n";
+    linea("sep");
+}
+
+//fila
+void filaProducto(const Producto& p, const char* nombreProv) {
+    cout << "� "
+         << setw(2)  << left << p.id << " � "
+         << setw(9)  << left << p.codigo << " � "
+         << setw(16) << left << p.nombre << " � "
+         << setw(12) << left << nombreProv << " � "
+         << setw(5)  << left << p.precio << " � "
+         << setw(6)  << left << p.stock << " � "
+         << setw(4)  << left << p.fechaRegistro << " �\n";
+}
+
+void pieProductos() {
+    linea("bot");
+}
+
+int buscarProveedorPorID(Tienda* tienda, int id) {
+    for (int i = 0; i < tienda->numProveedores; i++) {
+        if (tienda->proveedores[i].id == id)
+            return i;
+    }
+    return -1;
+}
+
+int buscarProveedorPorRIF(Tienda* tienda, const char* rif) {
+    for (int i = 0; i < tienda->numProveedores; i++) {
+        if (strcmp(tienda->proveedores[i].rif, rif) == 0)
+            return i;
+    }
+    return -1;
+}
+
+int buscarProveedorPorNombre(Tienda* tienda, const char* nombre) {
+    for (int i = 0; i < tienda->numProveedores; i++) {
+        if (strstr(tienda->proveedores[i].nombre, nombre) != nullptr)
+            return i;
+    }
+    return -1;
+}
+
+void mostrarProveedor(const Proveedor& p) {
+    cout << "\n=== PROVEEDOR ENCONTRADO ===\n";
+    cout << "ID: " << p.id << endl;
+    cout << "RIF: " << p.rif << endl;
+    cout << "Nombre: " << p.nombre << endl;
+    cout << "Email: " << p.email << endl;
+    cout << "Tel�fono: " << p.telefono << endl;
+}
+
+//================
+// tabla proveedor
+//================
+void lineaProv(const char* tipo) {
+    if (strcmp(tipo, "top") == 0)
+        cout << "+--------------------------------------------------------------------------+\n";
+    else if (strcmp(tipo, "mid") == 0)
+        cout << "�--------------------------------------------------------------------------�\n";
+    else if (strcmp(tipo, "sep") == 0)
+        cout << "�----+----------------------+------------------+---------------------------�\n";
+    else if (strcmp(tipo, "bot") == 0)
+        cout << "+--------------------------------------------------------------------------+\n";
+}
+void encabezadoProveedores() {
+    lineaProv("top");
+    cout << "�                         LISTADO DE PROVEEDORES                           �\n";
+    lineaProv("mid");
+    cout << "� ID �       Nombre         �      RIF        �        Tel�fono           �\n";
+    lineaProv("sep");
+}
+void filaProveedor(const Proveedor& p) {
+    cout << "� "
+         << setw(2)  << left << p.id << " � "
+         << setw(20) << left << p.nombre << " � "
+         << setw(16) << left << p.rif << " � "
+         << setw(25) << left << p.telefono << " �\n";
+}
+void pieProveedores() {
+    lineaProv("bot");
+}
+
+int buscarClientePorID(Tienda* tienda, int id) {
+    for (int i = 0; i < tienda->numClientes; i++) {
+        if (tienda->clientes[i].id == id)
+            return i;
+    }
+    return -1;
+}
+
+int buscarClientePorCedula(Tienda* tienda, const char* cedula) {
+    for (int i = 0; i < tienda->numClientes; i++) {
+        if (strcmp(tienda->clientes[i].cedula, cedula) == 0)
+            return i;
+    }
+    return -1;
+}
+
+int buscarClientePorNombre(Tienda* tienda, const char* nombre) {
+    for (int i = 0; i < tienda->numClientes; i++) {
+        if (strstr(tienda->clientes[i].nombre, nombre) != nullptr)
+            return i;
+    }
+    return -1;
+}
+
+void mostrarCliente(const Cliente& c) {
+    cout << "\n=== CLIENTE ENCONTRADO ===\n";
+    cout << "ID: " << c.id << endl;
+    cout << "C�dula/RIF: " << c.cedula << endl;
+    cout << "Nombre: " << c.nombre << endl;
+    cout << "Email: " << c.email << endl;
+    cout << "Tel�fono: " << c.telefono << endl;
+    cout << "Direcci�n: " << c.direccion << endl;
+}
+
+//==============
+//tabla clientes
+//==============
+
+void lineaClientes(const char* tipo) {
+    if (strcmp(tipo, "top") == 0)
+        cout << "+-------------------------------------------------------------------------------------------+\n";
+    else if (strcmp(tipo, "mid") == 0)
+        cout << "�-------------------------------------------------------------------------------------------�\n";
+    else if (strcmp(tipo, "sep") == 0)
+        cout << "�----+----------------------+------------------+----------------------+----------------------�\n";
+    else if (strcmp(tipo, "bot") == 0)
+        cout << "+-------------------------------------------------------------------------------------------+\n";
+}
+
+void encabezadoClientes() {
+    lineaClientes("top");
+    cout << "�                                 LISTADO DE CLIENTES                                       �\n";
+    lineaClientes("mid");
+    cout << "� ID �       Nombre         �   C�dula/RIF    �       Tel�fono       �        Email         �\n";
+    lineaClientes("sep");
+}
+
+void filaCliente(const Cliente& c) {
+    cout << "� "
+         << setw(2)  << left << c.id << " � "
+         << setw(20) << left << c.nombre << " � "
+         << setw(16) << left << c.cedula << " � "
+         << setw(20) << left << c.telefono << " � "
+         << setw(20) << left << c.email << " �\n";
+}
+
+void pieClientes() {
+    lineaClientes("bot");
+}
+
+//===============
+//2.1 inicializar
+//===============
+
+void inicializarTienda(Tienda* tienda, const char* nombre, const char* rif){
+
+    strcpy(tienda->nombre, nombre);
+    strcpy(tienda->rif, rif);
+    
+    tienda->capacidadProductos = 5;
+    tienda->capacidadProveedores = 5;
+    tienda->capacidadClientes = 5;
+    tienda->capacidadTransacciones = 5;
+
+    // Contadores
+    tienda->numProductos = 0;
+    tienda->numProveedores = 0;
+    tienda->numClientes = 0;
+    tienda->numTransacciones = 0;
+
+    // IDs 
+    tienda->siguienteIdProducto = 1;
+    tienda->siguienteIdProveedor = 1;
+    tienda->siguienteIdCliente = 1;
+    tienda->siguienteIdTransaccion = 1;
+
+    // Reservar memoria din�mica
+    tienda->productos = new Producto[tienda->capacidadProductos];
+    tienda->proveedores = new Proveedor[tienda->capacidadProveedores];
+    tienda->clientes = new Cliente[tienda->capacidadClientes];
+    tienda->transacciones = new Transaccion[tienda->capacidadTransacciones];
+
+}
+
+//delete
+void liberarTienda(Tienda* tienda) {
+    // Liberar memoria din�mica
+    delete[] tienda->productos;
+    delete[] tienda->proveedores;
+    delete[] tienda->clientes;
+    delete[] tienda->transacciones;
+
+    // Dejar punteros en nullptr por seguridad
+    tienda->productos = nullptr;
+    tienda->proveedores = nullptr;
+    tienda->clientes = nullptr;
+    tienda->transacciones = nullptr;
+
+    // Reiniciar contadores
+    tienda->numProductos = 0;
+    tienda->numProveedores = 0;
+    tienda->numClientes = 0;
+    tienda->numTransacciones = 0;
+}
+
+//======================
+//2.2.1
+//======================
+
+void crearProducto(Tienda* tienda) {
+    if (!confirmar("�Desea registrar un nuevo producto? (S/N): "))
+        return;
+
+    Producto nuevo;
+
+    // --- C�digo ---
+   solicitarString(
+    "Ingrese c�digo del producto (o CANCELAR): ",
+    nuevo.codigo,
+    20,
+    sinEspacios,
+    "ERROR: El c�digo no puede contener espacios.\n"
+);
+
+if (strcmp(nuevo.codigo, "CANCELAR") == 0 || strcmp(nuevo.codigo, "0") == 0)
+    return;
+
+if (codigoProductoDuplicado(tienda, nuevo.codigo)) {
+    cout << "ERROR: El c�digo '" << nuevo.codigo << "' ya est� registrado.\n";
+    return;
+}
+
+    // --- Nombre ---
+    solicitarString("Ingrese nombre del producto (o CANCELAR): ", nuevo.nombre, 100);
+    if (strcmp(nuevo.nombre, "CANCELAR") == 0 || strcmp(nuevo.nombre, "0") == 0)
+        return;
+
+    // --- Descripci�n ---
+    solicitarString("Ingrese descripci�n (o CANCELAR): ", nuevo.descripcion, 200);
+    if (strcmp(nuevo.descripcion, "CANCELAR") == 0 || strcmp(nuevo.descripcion, "0") == 0)
+        return;
+
+    // --- ID Proveedor ---
+    cout << "Ingrese ID del proveedor (o 0 para cancelar): ";
+    cin >> nuevo.idProveedor;
+
+    if (nuevo.idProveedor == 0)
+        return;
+
+    if (!existeProveedor(tienda, nuevo.idProveedor)) {
+        cout << "ERROR: El proveedor con ID " << nuevo.idProveedor << " no existe.\n";
+        return;
+    }
+
+    // --- Precio ---
+    nuevo.precio = solicitarEnteroPositivo("Ingrese precio (>0): ");
+
+    // --- Stock ---
+    nuevo.stock = solicitarEnteroNoNegativo("Ingrese stock (>=0): ");
+
+    // Fecha autom�tica
+    obtenerFechaActual(nuevo.fechaRegistro);
+
+    // --- Resumen ---
+    cout << "\n=== RESUMEN DEL PRODUCTO ===\n";
+    mostrarProducto(nuevo);
+
+    if (!confirmar("�Guardar producto? (S/N): "))
+        return;
+
+    // --- Redimensionar si es necesario ---
+    if (tienda->numProductos >= tienda->capacidadProductos) {
+    redimensionarProductos(tienda);
+}
+
+
+    // Guardado final
+    nuevo.id = tienda->siguienteIdProducto++;
+    tienda->productos[tienda->numProductos++] = nuevo;
+
+    cout << "\nProducto registrado exitosamente.\n";
+}
+
+//========================
+//2.2.2
+//========================
+
+void buscarProducto(Tienda* tienda) {
+    int opcion;
+    cout << "\n=== BUSCAR PRODUCTO ===\n";
+    cout << "1. Buscar por ID\n";
+    cout << "2. Buscar por nombre (parcial)\n";
+    cout << "3. Buscar por c�digo (parcial)\n";
+    cout << "4. Listar por proveedor\n";
+    cout << "0. Cancelar\n";
+    cout << "Seleccione una opci�n: ";
+    cin >> opcion;
+
+    if (opcion == 0) return;
+
+    char buffer[200];
+    string filtro;
+
+    switch (opcion) {
+
+    // 1. Buscar por ID
+    case 1: {
+        int id;
+        cout << "Ingrese ID del producto: ";
+        cin >> id;
+
+        int index = buscarProductoPorID(tienda, id);
+        if (index == -1) {
+            cout << "ERROR: No se encontr� un producto con ID " << id << ".\n";
+            return;
+        }
+
+        cout << "\n=== PRODUCTO ENCONTRADO ===\n";
+        mostrarProducto(tienda->productos[index]);
+        return;
+    }
+
+    // 2. Buscar por nombre (parcial)
+    case 2: {
+    solicitarString("Ingrese parte del nombre: ", buffer, 200);
+
+    int numResultados = 0;
+    int* indices = buscarProductosPorNombre(tienda, buffer, &numResultados);
+
+    if (numResultados == 0) {
+        cout << "No se encontraron coincidencias.\n";
+        return;
+    }
+
+    cout << "\n=== RESULTADOS ===\n";
+    for (int i = 0; i < numResultados; i++) {
+        int idx = indices[i];
+        mostrarProducto(tienda->productos[idx]);
+        cout << "-----------------------------\n";
+    }
+
+    delete[] indices; // obligatorio
+    return;
+	}
+
+
+    // 3. Buscar por c�digo (parcial)
+    case 3: {
+        solicitarString("Ingrese parte del c�digo: ", buffer, 200);
+        filtro = toLower(buffer);
+
+        bool encontrado = false;
+        cout << "\n=== RESULTADOS ===\n";
+
+        for (int i = 0; i < tienda->numProductos; i++) {
+            if (contiene(tienda->productos[i].codigo, filtro)) {
+                mostrarProducto(tienda->productos[i]);
+                cout << "-----------------------------\n";
+                encontrado = true;
+            }
+        }
+
+        if (!encontrado)
+            cout << "No se encontraron coincidencias.\n";
+
+        return;
+    }
+
+    // 4. Listar por proveedor
+    case 4: {
+        int idProv;
+        cout << "Ingrese ID del proveedor: ";
+        cin >> idProv;
+
+        if (!existeProveedor(tienda, idProv)) {
+            cout << "ERROR: El proveedor con ID " << idProv << " no existe.\n";
+            return;
+        }
+
+        bool encontrado = false;
+        cout << "\n=== PRODUCTOS DEL PROVEEDOR " 
+             << obtenerNombreProveedor(tienda, idProv) << " ===\n";
+
+        for (int i = 0; i < tienda->numProductos; i++) {
+            if (tienda->productos[i].idProveedor == idProv) {
+                mostrarProducto(tienda->productos[i]);
+                cout << "-----------------------------\n";
+                encontrado = true;
+            }
+        }
+
+        if (!encontrado)
+            cout << "No hay productos asociados a ese proveedor.\n";
+
+        return;
+    }
+
+    default:
+        cout << "Opci�n inv�lida.\n";
+        return;
+    }
+}
+
+//========================
+//2.2.3
+//========================
+
+void actualizarProducto(Tienda* tienda) {
+    int id;
+    cout << "Ingrese el ID del producto a actualizar: ";
+    cin >> id;
+
+    int index = buscarProductoPorID(tienda, id);
+    if (index == -1) {
+        cout << "ERROR: No existe un producto con ese ID.\n";
+        return;
+    }
+
+    Producto* original = &tienda->productos[index];
+    Producto temp = *original; // copia temporal
+
+    int opcion;
+
+    do {
+        cout << "\n=== EDITAR PRODUCTO ===\n";
+        cout << "1. C�digo: " << temp.codigo << endl;
+        cout << "2. Nombre: " << temp.nombre << endl;
+        cout << "3. Descripci�n: " << temp.descripcion << endl;
+        cout << "4. Proveedor ID: " << temp.idProveedor << endl;
+        cout << "5. Precio: " << temp.precio << endl;
+        cout << "6. Stock: " << temp.stock << endl;
+        cout << "7. Guardar cambios\n";
+        cout << "0. Cancelar sin guardar\n";
+        cout << "Opci�n: ";
+        cin >> opcion;
+
+        cin.ignore(); // limpiar buffer
+
+        switch (opcion) {
+
+        case 1: { // C�digo
+            char nuevoCodigo[20];
+            solicitarString("Nuevo c�digo: ", nuevoCodigo, 20);
+
+            if (codigoProductoDuplicado(tienda, nuevoCodigo, temp.id)) {
+                cout << "ERROR: El c�digo '" << nuevoCodigo << "' ya est� registrado.\n";
+            } else {
+                strcpy(temp.codigo, nuevoCodigo);
+            }
+            break;
+        }
+
+        case 2: // Nombre
+            solicitarString("Nuevo nombre: ", temp.nombre, 100);
+            break;
+
+        case 3: // Descripci�n
+            solicitarString("Nueva descripci�n: ", temp.descripcion, 200);
+            break;
+
+        case 4: { // Proveedor
+            int nuevoProv;
+            cout << "Nuevo ID de proveedor: ";
+            cin >> nuevoProv;
+
+            if (!existeProveedor(tienda, nuevoProv)) {
+                cout << "ERROR: El proveedor con ID " << nuevoProv << " no existe.\n";
+            } else {
+                temp.idProveedor = nuevoProv;
+            }
+            break;
+        }
+
+        case 5: // Precio
+            temp.precio = solicitarEnteroPositivo("Nuevo precio (>0): ");
+            break;
+
+        case 6: // Stock
+            temp.stock = solicitarEnteroNoNegativo("Nuevo stock (>=0): ");
+            break;
+
+        case 7: // Guardar cambios
+            cout << "\n=== RESUMEN FINAL ===\n";
+            mostrarProducto(temp);
+
+            if (confirmar("�Confirmar cambios? (S/N): ")) {
+                *original = temp;
+                cout << "Cambios guardados exitosamente.\n";
+            } else {
+                cout << "Cambios descartados.\n";
+            }
+            return;
+
+        case 0:
+            cout << "Cancelado. No se guardaron cambios.\n";
+            return;
+
+        default:
+            cout << "Opci�n inv�lida.\n";
+        }
+
+    } while (true);
+}
+
+//========================
+//2.2.4
+//========================
+
+void actualizarStockProducto(Tienda* tienda) {
+    int id;
+    cout << "Ingrese el ID del producto: ";
+    cin >> id;
+
+    int index = buscarProductoPorID(tienda, id);
+    if (index == -1) {
+        cout << "ERROR: No existe un producto con ese ID.\n";
+        return;
+    }
+
+    Producto* p = &tienda->productos[index];
+
+    cout << "\n=== ACTUALIZAR STOCK ===\n";
+    cout << "Producto: " << p->nombre << endl;
+    cout << "Stock actual: " << p->stock << endl;
+
+    int ajuste;
+    cout << "Ingrese ajuste (+ para aumentar, - para disminuir): ";
+    cin >> ajuste;
+
+    int nuevoStock = p->stock + ajuste;
+
+    if (nuevoStock < 0) {
+        cout << "ERROR: Stock insuficiente. Disponible: " 
+             << p->stock << ", Solicitado: " << (-ajuste) << endl;
+        return;
+    }
+
+    cout << "Stock final ser�a: " << nuevoStock << endl;
+
+    if (!confirmar("�Confirmar cambio? (S/N): "))
+        return;
+
+    p->stock = nuevoStock;
+    cout << "Stock actualizado exitosamente.\n";
+}
+
+//========================
+//2.2.5
+//========================
+
+void listarProductos(Tienda* tienda) {
+    if (tienda->numProductos == 0) {
+        cout << "No hay productos registrados.\n";
+        return;
+    }
+
+    encabezadoProductos();
+
+    for (int i = 0; i < tienda->numProductos; i++) {
+        Producto& p = tienda->productos[i];
+        const char* nombreProv = obtenerNombreProveedor(tienda, p.idProveedor);
+        filaProducto(p, nombreProv);
+    }
+
+    pieProductos();
+
+    cout << "\nTotal de productos: " << tienda->numProductos << "\n";
+}
+
+
+//========================
+//2.2.6
+//========================
+
+void eliminarProducto(Tienda* tienda) {
+    int id;
+    cout << "Ingrese el ID del producto a eliminar: ";
+    cin >> id;
+
+    int index = buscarProductoPorID(tienda, id);
+    if (index == -1) {
+        cout << "ERROR: No existe un producto con ese ID.\n";
+        return;
+    }
+
+    Producto& p = tienda->productos[index];
+
+    cout << "\n=== PRODUCTO A ELIMINAR ===\n";
+    mostrarProducto(p);
+
+    // Advertencia por transacciones asociadas
+    bool tieneTransacciones = false;
+    for (int i = 0; i < tienda->numTransacciones; i++) {
+        if (tienda->transacciones[i].idProducto == id) {
+            tieneTransacciones = true;
+            break;
+        }
+    }
+
+    if (tieneTransacciones) {
+        cout << "\nADVERTENCIA: Este producto tiene transacciones asociadas.\n";
+    }
+
+    if (!confirmar("\n�Eliminar producto? (S/N): ")) {
+        cout << "Eliminaci�n cancelada.\n";
+        return;
+    }
+
+    // Eliminar moviendo elementos
+    for (int i = index; i < tienda->numProductos - 1; i++) {
+        tienda->productos[i] = tienda->productos[i + 1];
+    }
+
+    tienda->numProductos--;
+
+    cout << "Producto eliminado exitosamente.\n";
+}
+
+//2.3
+
+void crearProveedor(Tienda* tienda) {
+    if (!confirmar("�Desea registrar un nuevo proveedor? (S/N): "))
+        return;
+
+    Proveedor nuevo;
+
+    // --- RIF ---
+    solicitarString(
+        "Ingrese RIF del proveedor (o CANCELAR): ",
+        nuevo.rif,
+        20,
+        nullptr
+    );
+
+    if (strcmp(nuevo.rif, "CANCELAR") == 0 || strcmp(nuevo.rif, "0") == 0)
+        return;
+
+    if (rifDuplicado(tienda, nuevo.rif)) {
+        cout << "ERROR: El RIF '" << nuevo.rif << "' ya est� registrado.\n";
+        return;
+    }
+
+    // --- Nombre ---
+    solicitarString("Ingrese nombre del proveedor (o CANCELAR): ",
+                    nuevo.nombre, 100);
+
+    if (strcmp(nuevo.nombre, "CANCELAR") == 0 || strcmp(nuevo.nombre, "0") == 0)
+        return;
+
+    // --- Email ---
+    solicitarString(
+        "Ingrese email del proveedor (o CANCELAR): ",
+        nuevo.email,
+        100,
+        emailValido,
+        "ERROR: El email debe contener '@' y un punto.\n"
+    );
+
+    if (strcmp(nuevo.email, "CANCELAR") == 0 || strcmp(nuevo.email, "0") == 0)
+        return;
+
+    // --- Tel�fono ---
+    solicitarString("Ingrese tel�fono del proveedor (o CANCELAR): ",
+                    nuevo.telefono, 20);
+
+    if (strcmp(nuevo.telefono, "CANCELAR") == 0 || strcmp(nuevo.telefono, "0") == 0)
+        return;
+
+    // --- Confirmaci�n ---
+    cout << "\n=== RESUMEN DEL PROVEEDOR ===\n";
+    cout << "RIF: " << nuevo.rif << endl;
+    cout << "Nombre: " << nuevo.nombre << endl;
+    cout << "Email: " << nuevo.email << endl;
+    cout << "Tel�fono: " << nuevo.telefono << endl;
+
+    if (!confirmar("�Guardar proveedor? (S/N): "))
+        return;
+
+    // --- Redimensionar si es necesario ---
+    if (tienda->numProveedores >= tienda->capacidadProveedores)
+        redimensionarProveedores(tienda);
+
+    // --- Guardar ---
+    nuevo.id = tienda->siguienteIdProveedor++;
+    tienda->proveedores[tienda->numProveedores++] = nuevo;
+
+    cout << "Proveedor registrado exitosamente.\n";
+}
+
+//2.3.2
+
+void buscarProveedor(Tienda* tienda) {
+    int opcion;
+
+    do {
+        cout << "\n=== BUSCAR PROVEEDOR ===\n";
+        cout << "1. Buscar por ID\n";
+        cout << "2. Buscar por nombre (coincidencia parcial)\n";
+        cout << "3. Buscar por RIF\n";
+        cout << "0. Cancelar\n";
+        cout << "Seleccione una opci�n: ";
+        cin >> opcion;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (opcion == 0)
+            return;
+
+        int index = -1;
+
+        switch (opcion) {
+
+            case 1: {
+                int id;
+                cout << "Ingrese ID del proveedor: ";
+                cin >> id;
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                index = buscarProveedorPorID(tienda, id);
+                break;
+            }
+
+            case 2: {
+                char nombre[100];
+                solicitarString("Ingrese nombre o parte del nombre: ", nombre, 100);
+                index = buscarProveedorPorNombre(tienda, nombre);
+                break;
+            }
+
+            case 3: {
+                char rif[20];
+                solicitarString("Ingrese RIF del proveedor: ", rif, 20);
+                index = buscarProveedorPorRIF(tienda, rif);
+                break;
+            }
+
+            default:
+                cout << "Opci�n inv�lida.\n";
+                continue;
+        }
+
+        if (index == -1) {
+            cout << "No se encontr� ning�n proveedor con ese criterio.\n";
+        } else {
+            mostrarProveedor(tienda->proveedores[index]);
+        }
+
+        system("pause");
+
+    } while (opcion != 0);
+}
+
+//2.3.3
+
+void actualizarProveedor(Tienda* tienda) {
+    int id;
+    cout << "Ingrese el ID del proveedor a actualizar (0 para cancelar): ";
+    cin >> id;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    if (id == 0)
+        return;
+
+    int index = buscarProveedorPorID(tienda, id);
+    if (index == -1) {
+        cout << "ERROR: No existe un proveedor con ese ID.\n";
+        return;
+    }
+
+    Proveedor& original = tienda->proveedores[index];
+    Proveedor temp = original; // copia temporal
+
+    cout << "\n=== PROVEEDOR ENCONTRADO ===\n";
+    mostrarProveedor(original);
+
+    if (!confirmar("\n�Desea modificar este proveedor? (S/N): "))
+        return;
+
+    // --- Nombre ---
+    cout << "\nNombre actual: " << temp.nombre << endl;
+    solicitarString("Nuevo nombre (ENTER para mantener): ", temp.nombre, 100);
+    if (strlen(temp.nombre) == 0)
+        strcpy(temp.nombre, original.nombre);
+
+    // --- RIF ---
+    cout << "\nRIF actual: " << temp.rif << endl;
+    solicitarString("Nuevo RIF (ENTER para mantener): ", temp.rif, 20);
+    if (strlen(temp.rif) == 0)
+        strcpy(temp.rif, original.rif);
+    else if (rifDuplicado(tienda, temp.rif, original.id)) {
+        cout << "ERROR: El RIF '" << temp.rif << "' ya est� registrado.\n";
+        return;
+    }
+
+    // --- Tel�fono ---
+    cout << "\nTel�fono actual: " << temp.telefono << endl;
+    solicitarString("Nuevo tel�fono (ENTER para mantener): ", temp.telefono, 20);
+    if (strlen(temp.telefono) == 0)
+        strcpy(temp.telefono, original.telefono);
+
+    // --- Email ---
+    cout << "\nEmail actual: " << temp.email << endl;
+    solicitarString("Nuevo email (ENTER para mantener): ", temp.email, 100);
+    if (strlen(temp.email) == 0)
+        strcpy(temp.email, original.email);
+    else if (!emailValido(temp.email)) {
+        cout << "ERROR: El email debe contener '@' y un dominio.\n";
+        return;
+    }
+
+    // --- Direcci�n ---
+    cout << "\nDirecci�n actual: " << temp.direccion << endl;
+    solicitarString("Nueva direcci�n (ENTER para mantener): ", temp.direccion, 200);
+    if (strlen(temp.direccion) == 0)
+        strcpy(temp.direccion, original.direccion);
+
+    // --- Confirmaci�n final ---
+    cout << "\n=== NUEVOS DATOS DEL PROVEEDOR ===\n";
+    mostrarProveedor(temp);
+
+    if (!confirmar("�Guardar cambios? (S/N): "))
+        return;
+
+    original = temp;
+    cout << "Proveedor actualizado exitosamente.\n";
+}
+
+//2.3.4
+
+void listarProveedores(Tienda* tienda) {
+    if (tienda->numProveedores == 0) {
+        cout << "No hay proveedores registrados.\n";
+        return;
+    }
+
+    encabezadoProveedores();
+
+    for (int i = 0; i < tienda->numProveedores; i++) {
+        filaProveedor(tienda->proveedores[i]);
+    }
+
+    pieProveedores();
+
+    cout << "\nTotal de proveedores: " << tienda->numProveedores << "\n";
+}
+
+//2.3.5
+
+void eliminarProveedor(Tienda* tienda) {
+    int id;
+    cout << "Ingrese el ID del proveedor a eliminar (0 para cancelar): ";
+    cin >> id;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    if (id == 0)
+        return;
+
+    int index = buscarProveedorPorID(tienda, id);
+    if (index == -1) {
+        cout << "ERROR: No existe un proveedor con ese ID.\n";
+        return;
+    }
+
+    Proveedor& p = tienda->proveedores[index];
+
+    cout << "\n=== PROVEEDOR A ELIMINAR ===\n";
+    mostrarProveedor(p);
+
+    // --- Verificar si tiene productos asociados ---
+    bool tieneProductos = false;
+
+    for (int i = 0; i < tienda->numProductos; i++) {
+        if (tienda->productos[i].idProveedor == id) {
+            tieneProductos = true;
+            break;
+        }
+    }
+
+    if (tieneProductos) {
+        cout << "\nADVERTENCIA: Este proveedor tiene productos asociados.\n";
+        cout << "No se puede eliminar mientras existan productos vinculados.\n";
+        return;
+    }
+
+    // --- Confirmaci�n ---
+    if (!confirmar("\n�Eliminar proveedor? (S/N): ")) {
+        cout << "Eliminaci�n cancelada.\n";
+        return;
+    }
+
+    // --- Eliminar moviendo elementos ---
+    for (int i = index; i < tienda->numProveedores - 1; i++) {
+        tienda->proveedores[i] = tienda->proveedores[i + 1];
+    }
+
+    tienda->numProveedores--;
+
+    cout << "Proveedor eliminado exitosamente.\n";
+}
+
+//=======================
+//2.4
+//=======================
+
+void crearCliente(Tienda* tienda) {
+    if (!confirmar("�Desea registrar un nuevo cliente? (S/N): "))
+        return;
+
+    Cliente nuevo;
+
+    // --- C�dula / RIF ---
+    solicitarString(
+        "Ingrese c�dula/RIF del cliente (o CANCELAR): ",
+        nuevo.cedula,
+        20
+    );
+
+    if (strcmp(nuevo.cedula, "CANCELAR") == 0 || strcmp(nuevo.cedula, "0") == 0)
+        return;
+
+    if (clienteDuplicado(tienda, nuevo.cedula)) {
+        cout << "ERROR: La c�dula/RIF '" << nuevo.cedula << "' ya est� registrada.\n";
+        return;
+    }
+
+    // --- Nombre ---
+    solicitarString("Ingrese nombre del cliente (o CANCELAR): ",
+                    nuevo.nombre, 100);
+
+    if (strcmp(nuevo.nombre, "CANCELAR") == 0 || strcmp(nuevo.nombre, "0") == 0)
+        return;
+
+    // --- Email ---
+    solicitarString(
+        "Ingrese email del cliente (o CANCELAR): ",
+        nuevo.email,
+        100,
+        emailValido,
+        "ERROR: El email debe contener '@' y un punto.\n"
+    );
+
+    if (strcmp(nuevo.email, "CANCELAR") == 0 || strcmp(nuevo.email, "0") == 0)
+        return;
+
+    // --- Tel�fono ---
+    solicitarString("Ingrese tel�fono del cliente (o CANCELAR): ",
+                    nuevo.telefono, 20);
+
+    if (strcmp(nuevo.telefono, "CANCELAR") == 0 || strcmp(nuevo.telefono, "0") == 0)
+        return;
+
+    // --- Direcci�n ---
+    solicitarString("Ingrese direcci�n del cliente (o CANCELAR): ",
+                    nuevo.direccion, 200);
+
+    if (strcmp(nuevo.direccion, "CANCELAR") == 0 || strcmp(nuevo.direccion, "0") == 0)
+        return;
+
+    // --- Fecha autom�tica ---
+    obtenerFechaActual(nuevo.fechaRegistro);
+
+    // --- Resumen ---
+    cout << "\n=== RESUMEN DEL CLIENTE ===\n";
+    cout << "C�dula/RIF: " << nuevo.cedula << endl;
+    cout << "Nombre: " << nuevo.nombre << endl;
+    cout << "Email: " << nuevo.email << endl;
+    cout << "Tel�fono: " << nuevo.telefono << endl;
+    cout << "Direcci�n: " << nuevo.direccion << endl;
+
+    if (!confirmar("�Guardar cliente? (S/N): "))
+        return;
+
+    // --- Redimensionar si es necesario ---
+    if (tienda->numClientes >= tienda->capacidadClientes)
+        redimensionarClientes(tienda);
+
+    // --- Guardar ---
+    nuevo.id = tienda->siguienteIdCliente++;
+    tienda->clientes[tienda->numClientes++] = nuevo;
+
+    cout << "Cliente registrado exitosamente.\n";
+}
+
+//2.4.2
+
+void buscarCliente(Tienda* tienda) {
+    int opcion;
+
+    do {
+        cout << "\n=== BUSCAR CLIENTE ===\n";
+        cout << "1. Buscar por ID\n";
+        cout << "2. Buscar por nombre (coincidencia parcial)\n";
+        cout << "3. Buscar por c�dula/RIF\n";
+        cout << "0. Cancelar\n";
+        cout << "Seleccione una opci�n: ";
+        cin >> opcion;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (opcion == 0)
+            return;
+
+        int index = -1;
+
+        switch (opcion) {
+
+            case 1: {
+                int id;
+                cout << "Ingrese ID del cliente: ";
+                cin >> id;
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                index = buscarClientePorID(tienda, id);
+                break;
+            }
+
+            case 2: {
+                char nombre[100];
+                solicitarString("Ingrese nombre o parte del nombre: ", nombre, 100);
+                index = buscarClientePorNombre(tienda, nombre);
+                break;
+            }
+
+            case 3: {
+                char cedula[20];
+                solicitarString("Ingrese c�dula/RIF del cliente: ", cedula, 20);
+                index = buscarClientePorCedula(tienda, cedula);
+                break;
+            }
+
+            default:
+                cout << "Opci�n inv�lida.\n";
+                continue;
+        }
+
+        if (index == -1) {
+            cout << "No se encontr� ning�n cliente con ese criterio.\n";
+        } else {
+            mostrarCliente(tienda->clientes[index]);
+        }
+
+        system("pause");
+
+    } while (opcion != 0);
+}
+
+//2.4.3
+
+void actualizarCliente(Tienda* tienda) {
+    int id;
+    cout << "Ingrese el ID del cliente a actualizar (0 para cancelar): ";
+    cin >> id;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    if (id == 0)
+        return;
+
+    int index = buscarClientePorID(tienda, id);
+    if (index == -1) {
+        cout << "ERROR: No existe un cliente con ese ID.\n";
+        return;
+    }
+
+    Cliente& original = tienda->clientes[index];
+    Cliente temp = original; // copia temporal
+
+    cout << "\n=== CLIENTE ENCONTRADO ===\n";
+    mostrarCliente(original);
+
+    if (!confirmar("\n�Desea modificar este cliente? (S/N): "))
+        return;
+
+    // --- Nombre ---
+    cout << "\nNombre actual: " << temp.nombre << endl;
+    solicitarString("Nuevo nombre (ENTER para mantener): ", temp.nombre, 100);
+    if (strlen(temp.nombre) == 0)
+        strcpy(temp.nombre, original.nombre);
+
+    // --- C�dula/RIF ---
+    cout << "\nC�dula/RIF actual: " << temp.cedula << endl;
+    solicitarString("Nueva c�dula/RIF (ENTER para mantener): ", temp.cedula, 20);
+    if (strlen(temp.cedula) == 0)
+        strcpy(temp.cedula, original.cedula);
+    else if (clienteDuplicado(tienda, temp.cedula, original.id)) {
+        cout << "ERROR: La c�dula/RIF '" << temp.cedula << "' ya est� registrada.\n";
+        return;
+    }
+
+    // --- Tel�fono ---
+    cout << "\nTel�fono actual: " << temp.telefono << endl;
+    solicitarString("Nuevo tel�fono (ENTER para mantener): ", temp.telefono, 20);
+    if (strlen(temp.telefono) == 0)
+        strcpy(temp.telefono, original.telefono);
+
+    // --- Email ---
+    cout << "\nEmail actual: " << temp.email << endl;
+    solicitarString("Nuevo email (ENTER para mantener): ", temp.email, 100);
+    if (strlen(temp.email) == 0)
+        strcpy(temp.email, original.email);
+    else if (!emailValido(temp.email)) {
+        cout << "ERROR: El email debe contener '@' y un dominio.\n";
+        return;
+    }
+
+    // --- Direcci�n ---
+    cout << "\nDirecci�n actual: " << temp.direccion << endl;
+    solicitarString("Nueva direcci�n (ENTER para mantener): ", temp.direccion, 200);
+    if (strlen(temp.direccion) == 0)
+        strcpy(temp.direccion, original.direccion);
+
+    // --- Confirmaci�n final ---
+    cout << "\n=== NUEVOS DATOS DEL CLIENTE ===\n";
+    mostrarCliente(temp);
+
+    if (!confirmar("�Guardar cambios? (S/N): "))
+        return;
+
+    original = temp;
+
+    cout << "Cliente actualizado exitosamente.\n";
+}
+
+//2.4.4
+
+void listarClientes(Tienda* tienda) {
+    if (tienda->numClientes == 0) {
+        cout << "No hay clientes registrados.\n";
+        return;
+    }
+
+    encabezadoClientes();
+
+    for (int i = 0; i < tienda->numClientes; i++) {
+        filaCliente(tienda->clientes[i]);
+    }
+
+    pieClientes();
+
+    cout << "\nTotal de clientes: " << tienda->numClientes << "\n";
+}
+
+//2.4.5
+
+void eliminarCliente(Tienda* tienda) {
+    int id;
+    cout << "Ingrese el ID del cliente a eliminar (0 para cancelar): ";
+    cin >> id;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    if (id == 0)
+        return;
+
+    int index = buscarClientePorID(tienda, id);
+    if (index == -1) {
+        cout << "ERROR: No existe un cliente con ese ID.\n";
+        return;
+    }
+
+    Cliente& c = tienda->clientes[index];
+
+    cout << "\n=== CLIENTE A ELIMINAR ===\n";
+    mostrarCliente(c);
+
+    // Verificar transacciones asociadas
+    bool tieneTransacciones = false;
+    for (int i = 0; i < tienda->numTransacciones; i++) {
+        if (tienda->transacciones[i].idRelacionado == id &&
+            strcmp(tienda->transacciones[i].tipo, "VENTA") == 0) {
+            tieneTransacciones = true;
+            break;
+        }
+    }
+
+    if (tieneTransacciones) {
+        cout << "\nADVERTENCIA: Este cliente tiene transacciones asociadas.\n";
+        cout << "No se puede eliminar mientras existan ventas registradas.\n";
+        return;
+    }
+
+    if (!confirmar("\n�Eliminar cliente? (S/N): ")) {
+        cout << "Eliminaci�n cancelada.\n";
+        return;
+    }
+
+    // Eliminar moviendo elementos
+    for (int i = index; i < tienda->numClientes - 1; i++) {
+        tienda->clientes[i] = tienda->clientes[i + 1];
+    }
+
+    tienda->numClientes--;
+
+    cout << "Cliente eliminado exitosamente.\n";
+}
+
+// 2.5
+
+void registrarCompra(Tienda* tienda) {
+    cout << "REGISTRAR COMPRA";
+
+    int idProd;
+    cout << "Ingrese ID del producto (0 para cancelar): ";
+    cin >> idProd;
+    if (idProd == 0) return;
+
+    int posProd = buscarProductoPorID(tienda, idProd);
+    if (posProd == -1) {
+        cout << "ERROR: El producto no existe.";
+        return;
+    }
+
+    int idProv;
+    cout << "Ingrese ID del proveedor (0 para cancelar): ";
+    cin >> idProv;
+    if (idProv == 0) return;
+
+    int posProv = buscarProveedorPorID(tienda, idProv);
+    if (posProv == -1) {
+        cout << "ERROR: El proveedor no existe.";
+        return;
+    }
+
+    int cantidad;
+    cout << "Cantidad comprada (0 para cancelar): ";
+    cin >> cantidad;
+    if (cantidad == 0) return;
+
+    float precioUnit;
+    cout << "Precio unitario (0 para cancelar): ";
+    cin >> precioUnit;
+    if (precioUnit == 0) return;
+
+    float total = cantidad * precioUnit;
+
+    cout << "RESUMEN DE COMPRA";
+    cout << "Producto: " << tienda->productos[posProd].nombre << endl;
+    cout << "Proveedor: " << tienda->proveedores[posProv].nombre << endl;
+    cout << "Cantidad: " << cantidad << endl;
+    cout << "Total: " << total << endl;
+
+    if (!confirmar("�Confirmar compra? (S/N): ")) return;
+
+    tienda->productos[posProd].stock += cantidad;
+
+    if (tienda->numTransacciones >= tienda->capacidadTransacciones)
+        redimensionarTransacciones(tienda);
+
+    Transaccion& t = tienda->transacciones[tienda->numTransacciones++];
+    t.id = tienda->siguienteIdTransaccion++;
+    strcpy(t.tipo, "COMPRA");
+    t.idProducto = idProd;
+    t.idRelacionado = idProv;
+    t.cantidad = cantidad;
+    t.precioUnitario = precioUnit;
+    t.total = total;
+    obtenerFechaActual(t.fecha);
+    strcpy(t.descripcion, "Compra a proveedor");
+
+    cout << "Compra registrada exitosamente.";
+}
+
+
+// 2.5.2
+
+  void registrarVenta(Tienda* tienda) {
+    cout << "REGISTRAR VENTA";
+
+    int idProd;
+    cout << "Ingrese ID del producto (0 para cancelar): ";
+    cin >> idProd;
+    if (idProd == 0) return;
+
+    int posProd = buscarProductoPorID(tienda, idProd);
+    if (posProd == -1) {
+        cout << "ERROR: El producto no existe.";
+        return;
+    }
+
+    Producto& p = tienda->productos[posProd];
+    cout << "Stock disponible: " << p.stock << endl;
+
+    int idCli;
+    cout << "Ingrese ID del cliente (0 para cancelar): ";
+    cin >> idCli;
+    if (idCli == 0) return;
+
+    int posCli = buscarClientePorID(tienda, idCli);
+    if (posCli == -1) {
+        cout << "ERROR: El cliente no existe.";
+        return;
+    }
+
+    int cantidad;
+    cout << "Cantidad vendida (0 para cancelar): ";
+    cin >> cantidad;
+    if (cantidad == 0) return;
+
+    if (cantidad > p.stock) {
+        cout << "ERROR: Stock insuficiente.";
+        return;
+    }
+
+    float precioUnit = p.precio;
+    float total = precioUnit * cantidad;
+
+    cout << "RESUMEN DE VENTA";
+    cout << "Producto: " << p.nombre << endl;
+    cout << "Cliente: " << tienda->clientes[posCli].nombre << endl;
+    cout << "Cantidad: " << cantidad << endl;
+    cout << "Total: " << total << endl;
+
+    if (!confirmar("�Confirmar venta? (S/N): ")) return;
+
+    p.stock -= cantidad;
+
+    if (tienda->numTransacciones >= tienda->capacidadTransacciones)
+        redimensionarTransacciones(tienda);
+
+    Transaccion& t = tienda->transacciones[tienda->numTransacciones++];
+    t.id = tienda->siguienteIdTransaccion++;
+    strcpy(t.tipo, "VENTA");
+    t.idProducto = idProd;
+    t.idRelacionado = idCli;
+    t.cantidad = cantidad;
+    t.precioUnitario = precioUnit;
+    t.total = total;
+    obtenerFechaActual(t.fecha);
+    strcpy(t.descripcion, "Venta a cliente");
+
+    cout << "Venta registrada exitosamente.";
+}
+
+
+//2.5.3
+
+void buscarTransacciones(Tienda* tienda) {
+    cout << "BUSCAR TRANSACCIONES";
+    cout << "1. Por ID";
+    cout << "2. Por ID de producto";
+    cout << "3. Por ID de cliente";
+    cout << "4. Por ID de proveedor";
+    cout << "5. Por fecha (YYYY-MM-DD)";
+    cout << "6. Por tipo (COMPRA/VENTA)";
+    cout << "0. Cancelar";
+    cout << "Opci�n: ";
+
+    int op;
+    cin >> op;
+    cin.ignore();
+
+    if (op == 0) return;
+
+    char filtro[50];
+    int id;
+
+    cout << "RESULTADOS";
+
+    for (int i = 0; i < tienda->numTransacciones; i++) {
+        Transaccion& t = tienda->transacciones[i];
+        bool coincide = false;
+
+        switch (op) {
+            case 1:
+                cout << "ID (0 para cancelar): ";
+                cin >> id;
+                if (id == 0) return;
+                coincide = (t.id == id);
+                break;
+
+            case 2:
+                cout << "ID Producto (0 para cancelar): ";
+                cin >> id;
+                if (id == 0) return;
+                coincide = (t.idProducto == id);
+                break;
+
+            case 3:
+                cout << "ID Cliente (0 para cancelar): ";
+                cin >> id;
+                if (id == 0) return;
+                coincide = (strcmp(t.tipo, "VENTA") == 0 && t.idRelacionado == id);
+                break;
+
+            case 4:
+                cout << "ID Proveedor (0 para cancelar): ";
+                cin >> id;
+                if (id == 0) return;
+                coincide = (strcmp(t.tipo, "COMPRA") == 0 && t.idRelacionado == id);
+                break;
+
+            case 5:
+                solicitarString("Fecha (o CANCELAR): ", filtro, 11);
+                if (strcmp(filtro, "CANCELAR") == 0) return;
+                coincide = (strcmp(t.fecha, filtro) == 0);
+                break;
+
+            case 6:
+                solicitarString("Tipo (o CANCELAR): ", filtro, 10);
+                if (strcmp(filtro, "CANCELAR") == 0) return;
+                convertirAMinusculas(filtro);
+                coincide = (toLower(t.tipo) == filtro);
+                break;
+        }
+
+        if (coincide) {
+            cout << "ID: " << t.id
+                 << " | Tipo: " << t.tipo
+                 << " | Producto: " << t.idProducto
+                 << " | Relacionado: " << t.idRelacionado
+                 << " | Cantidad: " << t.cantidad
+                 << " | Total: " << t.total
+                 << " | Fecha: " << t.fecha << endl;
+        }
+    }
+}
+
+
+//2.5.4
+
+void listarTransacciones(Tienda* tienda) {
+    if (tienda->numTransacciones == 0) {
+        cout << "No hay transacciones registradas.";
+        return;
+    }
+
+    cout << "\n=== LISTADO DE TRANSACCIONES ===\n";
+    cout << "(Presione 0 para cancelar y volver al men�)\n\n";
+
+    cout << "ID | Tipo | Producto | Cliente/Proveedor | Cantidad | Total | Fecha\n";
+
+    for (int i = 0; i < tienda->numTransacciones; i++) {
+        Transaccion& t = tienda->transacciones[i];
+
+        cout << t.id << " | "
+             << t.tipo << " | "
+             << t.idProducto << " | "
+             << t.idRelacionado << " | "
+             << t.cantidad << " | "
+             << t.total << " | "
+             << t.fecha << endl;
+    }
+
+    int cancelar;
+    cout << "Ingrese 0 para volver: ";
+    cin >> cancelar;
+}
+
+
+//2.5.5
+
+void cancelarTransaccion(Tienda* tienda) {
+    int id;
+    cout << "ID de la transacci�n a cancelar (0 para salir): ";
+    cin >> id;
+
+    if (id == 0) return;
+
+    int pos = -1;
+    for (int i = 0; i < tienda->numTransacciones; i++)
+        if (tienda->transacciones[i].id == id)
+            pos = i;
+
+    if (pos == -1) {
+        cout << "ERROR: Transacci�n no encontrada.";
+        return;
+    }
+
+    Transaccion& t = tienda->transacciones[pos];
+
+    cout << "\n=== DETALLES ===\n";
+    cout << "Tipo: " << t.tipo << endl;
+    cout << "Producto: " << t.idProducto << endl;
+    cout << "Cantidad: " << t.cantidad << endl;
+    cout << "Total: " << t.total << endl;
+
+    if (!confirmar("�Cancelar transacci�n? (S/N): ")) return;
+
+    int posProd = buscarProductoPorID(tienda, t.idProducto);
+
+    if (strcmp(t.tipo, "COMPRA") == 0)
+        tienda->productos[posProd].stock -= t.cantidad;
+    else
+        tienda->productos[posProd].stock += t.cantidad;
+
+    strcpy(t.descripcion, "CANCELADA");
+
+    cout << "Transacci�n cancelada y stock revertido.";
+}
+
+
+void menuTransacciones(Tienda* tienda) {
+    int opcion;
+
+    do {
+        system("cls");
+        cout << "\n=== MENU DE TRANSACCIONES ===\n";
+        cout << "1. Registrar compra (Proveedor)\n";
+        cout << "2. Registrar venta (Cliente)\n";
+        cout << "3. Buscar transacciones\n";
+        cout << "4. Listar transacciones\n";
+        cout << "5. Cancelar transacci�n\n";
+        cout << "0. Volver al men� principal\n";
+        cout << "Seleccione una opci�n: ";
+        cin >> opcion;
+        cin.ignore();
+
+        system("cls");
+
+        switch (opcion) {
+            case 1: registrarCompra(tienda); break;
+            case 2: registrarVenta(tienda); break;
+            case 3: buscarTransacciones(tienda); break;
+            case 4: listarTransacciones(tienda); break;
+            case 5: cancelarTransaccion(tienda); break;
+
+            case 0:
+                cout << "Volviendo al men� principal...\n";
+                break;
+
+            default:
+                cout << "Opci�n inv�lida.\n";
+        }
+
+        if (opcion != 0) {
+            cout << "\n";
+            system("pause");
+        }
+
+    } while (opcion != 0);
+}
+
+//main 
+
+int main() {
+    setlocale(LC_ALL, "Spanish");
+
+    Tienda tienda;
+
+    // Inicializaci�n b�sica
+    tienda.numProductos = 0;
+    tienda.capacidadProductos = 10;
+    tienda.productos = new Producto[tienda.capacidadProductos];
+    tienda.siguienteIdProducto = 1;
+
+    tienda.numProveedores = 0;
+    tienda.capacidadProveedores = 10;
+    tienda.proveedores = new Proveedor[tienda.capacidadProveedores];
+    tienda.siguienteIdProveedor = 1;
+
+    tienda.numClientes = 0;
+    tienda.capacidadClientes = 10;
+    tienda.clientes = new Cliente[tienda.capacidadClientes];
+    tienda.siguienteIdCliente = 1;
+
+    tienda.numTransacciones = 0;
+    tienda.capacidadTransacciones = 10;
+    tienda.transacciones = new Transaccion[tienda.capacidadTransacciones];
+    tienda.siguienteIdTransaccion = 1;
+
+    int opcion;
+
+    do {
+        system("cls");
+        cout << "===A&S TECHNOLOGY===\n";
+        cout << "=======================\n";
+        cout << "=== MENU PRINCIPAL ===\n";
+        cout << "1. Crear producto\n";
+        cout << "2. Buscar producto\n";
+        cout << "3. Actualizar producto\n";
+        cout << "4. Actualizar stock\n";
+        cout << "5. Eliminar producto\n";
+        cout << "6. Listar productos\n";
+        cout << "-------------------------------\n";
+        cout << "7. Crear proveedor\n";
+        cout << "8. Buscar proveedor\n";
+        cout << "9. Actualizar proveedor\n";
+        cout << "10. Eliminar proveedor\n";
+        cout << "11. Listar proveedores\n";
+        cout << "-------------------------------\n";
+        cout<< "12. Crear cliente\n";
+		cout<< "13. Buscar cliente\n";
+		cout<< "14. Actualizar cliente\n";
+		cout<< "15. Eliminar cliente\n";
+		cout<< "16. Listar clientes\n";
+		cout << "-------------------------------\n";
+		cout << "17. Transacciones\n";
+		cout << "-------------------------------\n";
+        cout << "0. Salir\n";
+        cout << "Seleccione una opci�n: ";
+        cin >> opcion;
+
+        system("cls");
+
+        switch (opcion) {
+            // Productos
+            case 1: crearProducto(&tienda); break;
+            case 2: buscarProducto(&tienda); break;
+            case 3: actualizarProducto(&tienda); break;
+            case 4: actualizarStockProducto(&tienda); break;
+            case 5: eliminarProducto(&tienda); break;
+            case 6: listarProductos(&tienda); break;
+
+            // Proveedores
+            case 7: crearProveedor(&tienda); break;
+            case 8: buscarProveedor(&tienda); break;
+            case 9: actualizarProveedor(&tienda); break;
+            case 10: eliminarProveedor(&tienda); break;
+            case 11: listarProveedores(&tienda); break;
+			
+			// Clientes
+			case 12: crearCliente(&tienda); break; 
+			case 13: buscarCliente(&tienda); break; 
+			case 14: actualizarCliente(&tienda); break; 
+			case 15: eliminarCliente(&tienda); break; 
+			case 16: listarClientes(&tienda); break;
+			
+			// TRANSACCIONES 
+			case 17: menuTransacciones(&tienda); break;
+			
+            case 0:
+                cout << "Saliendo...\n";
+                break;
+
+            default:
+                cout << "Opci�n inv�lida.\n";
+        }
+
+        if (opcion != 0) {
+            cout << "\n";
+            system("pause");
+        }
+
+    } while (opcion != 0);
+
+    // Liberar memoria
+    liberarTienda(&tienda);
+
+    return 0;
+}
+
+
