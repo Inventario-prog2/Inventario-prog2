@@ -21,6 +21,10 @@ struct Producto {
     float precio;              // Precio unitario
     int stock;                 // Cantidad en inventario
     char fechaRegistro[11];    // Formato: YYYY-MM-DD
+    
+    int stockMinimo;                 
+    int totalVendido;                
+    bool eliminado;                  // Borrado l�gico
 };
 
 //1.2 Estructura Proveedor
@@ -33,6 +37,7 @@ struct Proveedor {
     char email[100];           // Correo electrónico
     char direccion[200];       // Dirección física
     char fechaRegistro[11];    // Formato: YYYY-MM-DD
+    bool eliminado;                  // Borrado l�gico
 };
 
 //1.3 Estructura Cliente
@@ -45,58 +50,89 @@ struct Cliente {
     char email[100];           // Correo electrónico
     char direccion[200];       // Dirección física
     char fechaRegistro[11];    // Formato: YYYY-MM-DD
+    bool eliminado;                  // Borrado l�gico
 };
 
 //1.4 Estructura Transacción (CASO ESPECIAL: Esta estructura puede separarse como se comentó en clase, tienen libertad de hacerlo.)
 
 struct Transaccion {
-    int id;                    // Identificador único (autoincremental)
-    char tipo[10];             // "COMPRA" o "VENTA"
-    int idProducto;            // ID del producto involucrado
-    int idRelacionado;         // ID del proveedor (compra) o cliente (venta)
-    int cantidad;              // Cantidad de unidades
-    float precioUnitario;      // Precio por unidad en esta transacción
-    float total;               // cantidad * precioUnitario
-    char fecha[11];            // Formato: YYYY-MM-DD
-    char descripcion[200];     // Notas adicionales (opcional)
+    int id;
+    char tipo[10];           // "COMPRA" o "VENTA"
+    int idRelacionado;       // ID del proveedor o cliente
+    
+    // Soporte para m�ltiples productos (M�ximo 20 por factura)
+    int idProductos[20];    
+    int cantidades[20];      
+    int numItems;            // Cu�ntos de los 20 espacios se usaron
+    
+    float total;
+    char fechaRegistro[11];
+    char descripcion[200];
+    bool eliminado;          // Borrado l�gico
 };
 
 //1.5 Estructura Principal: Tienda
 
 struct Tienda {
-    char nombre[100];          // Nombre de la tienda
-    char rif[20];              // RIF de la tienda
+    char nombre[100];
+    char rif[20];
+    char direccion[200];
+    char telefono[20];
     
-    // Arrays dinámicos de entidades
-    Producto* productos;
-    int numProductos;
-    int capacidadProductos;
-    
-    Proveedor* proveedores;
-    int numProveedores;
-    int capacidadProveedores;
-    
-    Cliente* clientes;
-    int numClientes;
-    int capacidadClientes;
-    
-    Transaccion* transacciones;
-    int numTransacciones;
-    int capacidadTransacciones;
-    
-    // Contadores para IDs autoincrementales
-    int siguienteIdProducto;
-    int siguienteIdProveedor;
-    int siguienteIdCliente;
-    int siguienteIdTransaccion;
+    // Estad�sticas globales (�tiles para reportes)
+    float totalVentasHistoricas;
+    float totalComprasHistoricas;
+    int cantidadOperaciones;
 };
 
+
+//Proyecto 2 importante
 struct ArchivoHeader {
     int cantidadRegistros;   // cantidad de elementos guardados
     int proximoID;           // siguiente ID autoincremental
     int registrosActivos;    // normalmente igual a cantidadRegistros
     int version;             // por si luego cambias el formato
 };
+
+ArchivoHeader leerHeader(const char* nombreArchivo) {
+    ArchivoHeader header = {0, 1, 0, 1}; // Valores por defecto
+    FILE* f = fopen(nombreArchivo, "rb");
+    if (f) {
+        fread(&header, sizeof(ArchivoHeader), 1, f);
+        fclose(f);
+    } else {
+        // Si no existe, lo creamos
+        f = fopen(nombreArchivo, "wb");
+        fwrite(&header, sizeof(ArchivoHeader), 1, f);
+        fclose(f);
+    }
+    return header;
+}
+
+template <typename T>
+void inicializarArchivo(const char* nombreArchivo) {
+    FILE* f = fopen(nombreArchivo, "rb");
+    if (!f) {
+        // El archivo no existe, lo creamos
+        f = fopen(nombreArchivo, "wb");
+        if (f) {
+            ArchivoHeader h = {0, 0}; // cantidadRegistros = 0, ultimoId = 0
+            fwrite(&h, sizeof(ArchivoHeader), 1, f);
+            fclose(f);
+            cout << "Archivo " << nombreArchivo << " inicializado.\n";
+        }
+    } else {
+        fclose(f);
+    }
+}
+//Sobrescribe solo los primeros 16 bytes
+void actualizarHeader(const char* nombreArchivo, ArchivoHeader header) {
+    FILE* f = fopen(nombreArchivo, "r+b"); // r+b para no borrar el contenido
+    if (f) {
+        fwrite(&header, sizeof(ArchivoHeader), 1, f);
+        fclose(f);
+    }
+}
 
 //==============
 //verificaciones y utilidades
@@ -123,21 +159,29 @@ bool contiene(const char* campo, const string& filtro) {
     string a = toLower(campo);
     return a.find(filtro) != string::npos;
 }
-bool existeProveedor(Tienda* tienda, int idProveedor) {
-    for (int i = 0; i < tienda->numProveedores; i++) {
-        if (tienda->proveedores[i].id == idProveedor)
-            return true;
-    }
-    return false;
-}
 
-bool codigoProductoDuplicado(Tienda* tienda, const char* codigo, int idIgnorar = -1) {
-    for (int i = 0; i < tienda->numProductos; i++) {
-        if (tienda->productos[i].id == idIgnorar) continue;
-        if (strcmp(tienda->productos[i].codigo, codigo) == 0)
-            return true;
+bool codigoProductoDuplicado(const char* codigo, int idIgnorar = -1) {
+    FILE* f = fopen("productos.bin", "rb");
+    if (!f) return false;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Producto p;
+    // Recorremos todos los registros guardados en el archivo
+    for (int i = 0; i < h.cantidadRegistros; i++) {
+        if (fread(&p, sizeof(Producto), 1, f)) {
+            if (!p.eliminado && p.id != idIgnorar) {
+                if (strcmp(p.codigo, codigo) == 0) {
+                    fclose(f);
+                    return true; // Encontrado en disco
+                }
+            }
+        }
     }
-    return false;
+
+    fclose(f);
+    return false; // No hay duplicados
 }
 
 void obtenerFechaActual(char* buffer) {
@@ -164,12 +208,22 @@ bool validarFecha(const char* fecha) {
     return true;
 }
 
-const char* obtenerNombreProveedor(Tienda* tienda, int idProveedor) {
-    for (int i = 0; i < tienda->numProveedores; i++) {
-        if (tienda->proveedores[i].id == idProveedor)
-            return tienda->proveedores[i].nombre;
+void obtenerNombreProveedorBin(int idBuscado, char* destino) {
+    strcpy(destino, "Desconocido");
+    FILE* f = fopen("proveedores.bin", "rb");
+    if (!f) return;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Proveedor p;
+    while (fread(&p, sizeof(Proveedor), 1, f)) {
+        if (!p.eliminado && p.id == idBuscado) {
+            strcpy(destino, p.nombre);
+            break;
+        }
     }
-    return "Desconocido";
+    fclose(f);
 }
 
 void solicitarString(const char* mensaje, char* destino, int maxLen,
@@ -212,21 +266,44 @@ bool emailValido(const char* email) {
     return true;
 }
 
-bool rifDuplicado(Tienda* tienda, const char* rif, int idIgnorar = -1) {
-    for (int i = 0; i < tienda->numProveedores; i++) {
-        if (tienda->proveedores[i].id == idIgnorar) continue;
-        if (strcmp(tienda->proveedores[i].rif, rif) == 0)
-            return true;
+bool rifDuplicado(const char* rif, int idIgnorar = -1) {
+    FILE* f = fopen("proveedores.bin", "rb");
+    if (!f) return false;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Proveedor p;
+    while (fread(&p, sizeof(Proveedor), 1, f)) {
+        if (!p.eliminado && p.id != idIgnorar) {
+            if (strcmp(p.rif, rif) == 0) {
+                fclose(f);
+                return true;
+            }
+        }
     }
+    fclose(f);
     return false;
 }
 
-bool clienteDuplicado(Tienda* tienda, const char* cedula, int idIgnorar = -1) {
-    for (int i = 0; i < tienda->numClientes; i++) {
-        if (tienda->clientes[i].id == idIgnorar) continue;
-        if (strcmp(tienda->clientes[i].cedula, cedula) == 0)
-            return true;
+bool clienteDuplicado(const char* cedula, int idIgnorar = -1) {
+    FILE* f = fopen("clientes.bin", "rb");
+    if (!f) return false;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Cliente c;
+    while (fread(&c, sizeof(Cliente), 1, f)) {
+        if (!c.eliminado && c.id != idIgnorar) {
+            if (strcmp(c.cedula, cedula) == 0) {
+                fclose(f);
+                return true;
+            }
+        }
     }
+
+    fclose(f);
     return false;
 }
 
@@ -266,40 +343,27 @@ int solicitarEnteroNoNegativo(const char* mensaje) {
 }
 
 
-int buscarProductoPorID(Tienda* tienda, int id) {
-    for (int i = 0; i < tienda->numProductos; i++)
-        if (tienda->productos[i].id == id)
-            return i;
+int buscarProductoPorID(int idBuscado) {
+    FILE* f = fopen("productos.bin", "rb");
+    if (!f) return -1;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Producto p;
+    for (int i = 0; i < h.cantidadRegistros; i++) {
+        fread(&p, sizeof(Producto), 1, f);
+        if (!p.eliminado && p.id == idBuscado) {
+            fclose(f);
+            return i; // Retornamos el �ndice en el archivo
+        }
+    }
+    fclose(f);
     return -1;
 }
 
-bool existeProducto(Tienda* tienda, int id) {
-    return buscarProductoPorID(tienda, id) != -1;
-}
-
-int* buscarProductosPorNombre(Tienda* tienda, const char* nombre, int* numResultados) {
-    *numResultados = 0;
-
-    // Primera pasada: contar coincidencias
-    for (int i = 0; i < tienda->numProductos; i++) {
-        if (strstr(tienda->productos[i].nombre, nombre) != nullptr)
-            (*numResultados)++;
-    }
-
-    if (*numResultados == 0)
-        return nullptr;
-
-    // Crear array dinámico
-    int* resultados = new int[*numResultados];
-    int pos = 0;
-
-    // Segunda pasada: guardar índices
-    for (int i = 0; i < tienda->numProductos; i++) {
-        if (strstr(tienda->productos[i].nombre, nombre) != nullptr)
-            resultados[pos++] = i;
-    }
-
-    return resultados;
+bool existeProducto(int idBuscado) {
+    return buscarProductoPorID(idBuscado) != -1;
 }
 
 void mostrarProducto(const Producto& p) {
@@ -312,64 +376,23 @@ void mostrarProducto(const Producto& p) {
     cout << "Fecha: " << p.fechaRegistro << endl;
 }
 
-const char* obtenerNombreProducto(Tienda* tienda, int idProducto) {
-    int pos = buscarProductoPorID(tienda, idProducto);
-    if (pos == -1) return "Desconocido";
-    return tienda->productos[pos].nombre;
-}
+void obtenerNombreProductoBin(int idBuscado, char* destino) {
+    strcpy(destino, "Desconocido");
+    FILE* f = fopen("productos.bin", "rb");
+    if (!f) return;
 
-void redimensionarProductos(Tienda* tienda) {
-    int nuevaCap = tienda->capacidadProductos * 2;
-    Producto* nuevoArray = new Producto[nuevaCap];
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
 
-    for (int i = 0; i < tienda->numProductos; i++) {
-        nuevoArray[i] = tienda->productos[i];
+    Producto p;
+    while (fread(&p, sizeof(Producto), 1, f)) {
+        if (p.id == idBuscado) {
+            strcpy(destino, p.nombre);
+            break;
+        }
     }
-
-    delete[] tienda->productos;
-    tienda->productos = nuevoArray;
-    tienda->capacidadProductos = nuevaCap;
+    fclose(f);
 }
-
-void redimensionarProveedores(Tienda* tienda) {
-    int nuevaCap = tienda->capacidadProveedores * 2;
-    Proveedor* nuevoArray = new Proveedor[nuevaCap];
-
-    for (int i = 0; i < tienda->numProveedores; i++) {
-        nuevoArray[i] = tienda->proveedores[i];
-    }
-
-    delete[] tienda->proveedores;
-    tienda->proveedores = nuevoArray;
-    tienda->capacidadProveedores = nuevaCap;
-}
-
-void redimensionarClientes(Tienda* tienda) {
-    int nuevaCap = tienda->capacidadClientes * 2;
-    Cliente* nuevoArray = new Cliente[nuevaCap];
-
-    for (int i = 0; i < tienda->numClientes; i++) {
-        nuevoArray[i] = tienda->clientes[i];
-    }
-
-    delete[] tienda->clientes;
-    tienda->clientes = nuevoArray;
-    tienda->capacidadClientes = nuevaCap;
-}
-
-void redimensionarTransacciones(Tienda* tienda) {
-    int nuevaCap = tienda->capacidadTransacciones * 2;
-    Transaccion* nuevoArray = new Transaccion[nuevaCap];
-
-    for (int i = 0; i < tienda->numTransacciones; i++) {
-        nuevoArray[i] = tienda->transacciones[i];
-    }
-
-    delete[] tienda->transacciones;
-    tienda->transacciones = nuevoArray;
-    tienda->capacidadTransacciones = nuevaCap;
-}
-
 
 //================
 //tabla producto
@@ -412,27 +435,67 @@ void pieProductos() {
     linea("bot");
 }
 
-int buscarProveedorPorID(Tienda* tienda, int id) {
-    for (int i = 0; i < tienda->numProveedores; i++) {
-        if (tienda->proveedores[i].id == id)
-            return i;
+void MostrarProductosPorNombre(const char* filtro) {
+    FILE* f = fopen("productos.bin", "rb");
+    if (!f) return;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    string filtroMin = toLower(filtro); // Usamos tu utilidad toLower
+    Producto p;
+    bool encontrado = false;
+
+    encabezadoProductos();
+    while (fread(&p, sizeof(Producto), 1, f)) {
+        if (!p.eliminado && contiene(p.nombre, filtroMin)) { // Usamos tu utilidad contiene
+            char provNombre[50];
+            obtenerNombreProveedorBin(p.idProveedor, provNombre);
+            filaProducto(p, provNombre);
+            encontrado = true;
+        }
     }
+    pieProductos();
+
+    if (!encontrado) cout << "No se encontraron coincidencias.\n";
+    fclose(f);
+}
+int buscarProveedorPorIDBin(int idBuscado) {
+    FILE* f = fopen("proveedores.bin", "rb");
+    if (!f) return -1;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Proveedor p;
+    for (int i = 0; i < h.cantidadRegistros; i++) {
+        fread(&p, sizeof(Proveedor), 1, f);
+        if (!p.eliminado && p.id == idBuscado) {
+            fclose(f);
+            return i; // �ndice f�sico para fseek
+        }
+    }
+    fclose(f);
     return -1;
 }
 
-int buscarProveedorPorRIF(Tienda* tienda, const char* rif) {
-    for (int i = 0; i < tienda->numProveedores; i++) {
-        if (strcmp(tienda->proveedores[i].rif, rif) == 0)
-            return i;
-    }
-    return -1;
-}
+int buscarProveedorPorRIFBin(const char* rif) {
+    FILE* f = fopen("proveedores.bin", "rb");
+    if (!f) return -1;
 
-int buscarProveedorPorNombre(Tienda* tienda, const char* nombre) {
-    for (int i = 0; i < tienda->numProveedores; i++) {
-        if (strstr(tienda->proveedores[i].nombre, nombre) != nullptr)
-            return i;
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Proveedor p;
+    for (int i = 0; i < h.cantidadRegistros; i++) {
+        if (fread(&p, sizeof(Proveedor), 1, f)) {
+            if (!p.eliminado && strcmp(p.rif, rif) == 0) {
+                fclose(f);
+                return i; // �ndice para fseek
+            }
+        }
     }
+    fclose(f);
     return -1;
 }
 
@@ -443,6 +506,11 @@ void mostrarProveedor(const Proveedor& p) {
     cout << "Nombre: " << p.nombre << endl;
     cout << "Email: " << p.email << endl;
     cout << "Teléfono: " << p.telefono << endl;
+}
+
+
+bool existeProveedorBin(int idBuscado) {
+    return buscarProveedorPorIDBin(idBuscado) != -1;
 }
 
 //================
@@ -476,38 +544,89 @@ void pieProveedores() {
     lineaProv("bot");
 }
 
-int buscarClientePorID(Tienda* tienda, int id) {
-    for (int i = 0; i < tienda->numClientes; i++) {
-        if (tienda->clientes[i].id == id)
-            return i;
+void buscarYMostrarProveedoresPorNombreBin(const char* filtro) {
+    FILE* f = fopen("proveedores.bin", "rb");
+    if (!f) return;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    string filtroMin = toLower(filtro);
+    Proveedor p;
+    bool encontrado = false;
+
+    encabezadoProveedores();
+    while (fread(&p, sizeof(Proveedor), 1, f)) {
+        if (!p.eliminado && contiene(p.nombre, filtroMin)) {
+            filaProveedor(p);
+            encontrado = true;
+        }
     }
+    pieProveedores();
+
+    if (!encontrado) cout << "No se encontraron proveedores con ese nombre.\n";
+    fclose(f);
+}
+
+int buscarClientePorIDBin(int idBuscado) {
+    FILE* f = fopen("clientes.bin", "rb");
+    if (!f) return -1;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Cliente c;
+    for (int i = 0; i < h.cantidadRegistros; i++) {
+        fread(&c, sizeof(Cliente), 1, f);
+        if (!c.eliminado && c.id == idBuscado) {
+            fclose(f);
+            return i;
+        }
+    }
+    fclose(f);
     return -1;
 }
 
-bool existeCliente(Tienda* tienda, int id) {
-    return buscarClientePorID(tienda, id) != -1;
+bool existeClienteBin(int idBuscado) {
+    return buscarClientePorIDBin(idBuscado) != -1;
 }
 
-int buscarClientePorCedula(Tienda* tienda, const char* cedula) {
-    for (int i = 0; i < tienda->numClientes; i++) {
-        if (strcmp(tienda->clientes[i].cedula, cedula) == 0)
-            return i;
+int buscarClientePorCedulaBin(const char* cedula) {
+    FILE* f = fopen("clientes.bin", "rb");
+    if (!f) return -1;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Cliente c;
+    for (int i = 0; i < h.cantidadRegistros; i++) {
+        if (fread(&c, sizeof(Cliente), 1, f)) {
+            if (!c.eliminado && strcmp(c.cedula, cedula) == 0) {
+                fclose(f);
+                return i; // Retorna el �ndice f�sico
+            }
+        }
     }
+    fclose(f);
     return -1;
 }
 
-int buscarClientePorNombre(Tienda* tienda, const char* nombre) {
-    for (int i = 0; i < tienda->numClientes; i++) {
-        if (strstr(tienda->clientes[i].nombre, nombre) != nullptr)
-            return i;
-    }
-    return -1;
-}
+void obtenerNombreClienteBin(int idBuscado, char* destino) {
+    strcpy(destino, "Desconocido");
+    FILE* f = fopen("clientes.bin", "rb");
+    if (!f) return;
 
-const char* obtenerNombreCliente(Tienda* tienda, int idCliente) {
-    int pos = buscarClientePorID(tienda, idCliente);
-    if (pos == -1) return "Desconocido";
-    return tienda->clientes[pos].nombre;
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    Cliente c;
+    while (fread(&c, sizeof(Cliente), 1, f)) {
+        if (!c.eliminado && c.id == idBuscado) {
+            strcpy(destino, c.nombre);
+            break;
+        }
+    }
+    fclose(f);
 }
 
 void mostrarCliente(const Cliente& c) {
@@ -556,6 +675,29 @@ void pieClientes() {
     lineaClientes("bot");
 }
 
+void buscarYMostrarClientesPorNombreBin(const char* filtro) {
+    FILE* f = fopen("clientes.bin", "rb");
+    if (!f) return;
+
+    ArchivoHeader h;
+    fread(&h, sizeof(ArchivoHeader), 1, f);
+
+    string filtroMin = toLower(filtro);
+    Cliente c;
+    bool encontrado = false;
+
+    encabezadoClientes();
+    while (fread(&c, sizeof(Cliente), 1, f)) {
+        if (!c.eliminado && contiene(c.nombre, filtroMin)) {
+            filaCliente(c);
+            encontrado = true;
+        }
+    }
+    pieClientes();
+
+    if (!encontrado) cout << "No se encontraron clientes con ese nombre.\n";
+    fclose(f);
+}
 
 //=======================
 // tabla transacciones
@@ -584,11 +726,11 @@ void filaTransaccion(const Transaccion& t) {
     cout << "¦ "
          << setw(2)  << left << t.id << " ¦ "
          << setw(8)  << left << t.tipo << " ¦ "
-         << setw(8)  << left << t.idProducto << " ¦ "
+         << setw(8)  << left << t.idProductos << " ¦ "
          << setw(22) << left << t.idRelacionado << " ¦ "
-         << setw(8)  << left << t.cantidad << " ¦ "
+         << setw(8)  << left << t.cantidades << " ¦ "
          << setw(9)  << left << t.total << " ¦ "
-         << setw(10) << left << t.fecha << " ¦ "
+         << setw(10) << left << t.fechaRegistro << " ¦ "
          << setw(15) << left << t.descripcion << " ¦\n";
 }
 
@@ -600,72 +742,40 @@ void pieTransacciones() {
 //2.1 inicializar
 //===============
 
-void inicializarTienda(Tienda* tienda, const char* nombre, const char* rif){
-
+void inicializarTienda(Tienda* tienda, const char* nombre, const char* rif) {
     strcpy(tienda->nombre, nombre);
     strcpy(tienda->rif, rif);
     
-    tienda->capacidadProductos = 5;
-    tienda->capacidadProveedores = 5;
-    tienda->capacidadClientes = 5;
-    tienda->capacidadTransacciones = 5;
+    // Estad�sticas iniciales
+    tienda->totalVentasHistoricas = 0;
+    tienda->totalComprasHistoricas = 0;
+    tienda->cantidadOperaciones = 0;
 
-    // Contadores
-    tienda->numProductos = 0;
-    tienda->numProveedores = 0;
-    tienda->numClientes = 0;
-    tienda->numTransacciones = 0;
-
-    // IDs 
-    tienda->siguienteIdProducto = 1;
-    tienda->siguienteIdProveedor = 1;
-    tienda->siguienteIdCliente = 1;
-    tienda->siguienteIdTransaccion = 1;
-
-    // Reservar memoria dinámica
-    tienda->productos = new Producto[tienda->capacidadProductos];
-    tienda->proveedores = new Proveedor[tienda->capacidadProveedores];
-    tienda->clientes = new Cliente[tienda->capacidadClientes];
-    tienda->transacciones = new Transaccion[tienda->capacidadTransacciones];
-
+   inicializarArchivo<Producto>("productos.bin");
+    inicializarArchivo<Proveedor>("proveedores.bin");
+    inicializarArchivo<Cliente>("clientes.bin");
+    inicializarArchivo<Transaccion>("transacciones.bin");
 }
 
-//delete
-void liberarTienda(Tienda* tienda) {
-    // Liberar memoria dinámica
-    delete[] tienda->productos;
-    delete[] tienda->proveedores;
-    delete[] tienda->clientes;
-    delete[] tienda->transacciones;
+void registrarProductoEnDisco(Producto nuevo) {
+    const char* nombreArchivo = "productos.bin";
+    ArchivoHeader header = leerHeader(nombreArchivo);
 
-    // Dejar punteros en nullptr por seguridad
-    tienda->productos = nullptr;
-    tienda->proveedores = nullptr;
-    tienda->clientes = nullptr;
-    tienda->transacciones = nullptr;
+    // Asignamos el ID autoincremental del Header
+    nuevo.id = header.proximoID;
+    nuevo.eliminado = false; // Flag para borrado l�gico
 
-    // Reiniciar contadores
-    tienda->numProductos = 0;
-    tienda->numProveedores = 0;
-    tienda->numClientes = 0;
-    tienda->numTransacciones = 0;
-}
+    // 'ab' (append binary) coloca el cursor al final autom�ticamente
+    FILE* f = fopen(nombreArchivo, "ab");
+    if (f) {
+        fwrite(&nuevo, sizeof(Producto), 1, f);
+        fclose(f);
 
-void guardarProductosBinario(Tienda* tienda) {
-    ofstream out("productos.bin", ios::binary | ios::trunc);
-    if (!out) return;
-
-    ArchivoHeader header;
-    header.cantidadRegistros = tienda->numProductos;
-    header.proximoID = tienda->siguienteIdProducto;
-    header.registrosActivos = tienda->numProductos;
-    header.version = 1;
-
-    out.write(reinterpret_cast<char*>(&header), sizeof(header));
-
-    if (tienda->numProductos > 0) {
-        out.write(reinterpret_cast<char*>(tienda->productos),
-                  sizeof(Producto) * tienda->numProductos);
+        // Actualizamos contadores del Header
+        header.cantidadRegistros++;
+        header.proximoID++;
+        header.registrosActivos++;
+        actualizarHeader(nombreArchivo, header);
     }
 }
 
@@ -821,50 +931,19 @@ void cargarTransaccionesBinario(Tienda* tienda) {
 }
 
 
-void mostrarDetalleTransaccion(Tienda* tienda, const Transaccion& t) {
-    const char* nombreProducto = obtenerNombreProducto(tienda, t.idProducto);
-    const char* nombreRelacionado = (strcmp(t.tipo, "VENTA") == 0)
-        ? obtenerNombreCliente(tienda, t.idRelacionado)
-        : obtenerNombreProveedor(tienda, t.idRelacionado);
+void mostrarDetalleTransaccion(const Transaccion& t) {
+    // Buscamos el producto en el archivo para obtener su nombre real
+    Producto p;
+    bool encontrado = buscarProductoPorID(t.idProducto, &p);
 
     cout << "+-----------------------------------------------------------+\n";
-    cout << "¦              DETALLE DE TRANSACCIÓN                       ¦\n";
-    cout << "¦-----------------------------------------------------------¦\n";
-
-    cout << "¦ ID Transacción: " << setw(43) << left << t.id << "¦\n";
-    cout << "¦ Tipo: " << setw(54) << left << t.tipo << "¦\n";
-
-    {
-        string linea = string(nombreProducto) + " (ID: " + aString(t.idProducto) + ")";
-        cout << "¦ Producto: " << setw(47) << left << linea << "¦\n";
-    }
-
-    {
-        string etiqueta = (strcmp(t.tipo, "VENTA") == 0) ? "Cliente: " : "Proveedor: ";
-        string linea = string(nombreRelacionado) + " (ID: " + aString(t.idRelacionado) + ")";
-        cout << "¦ " << etiqueta << setw(48 - etiqueta.size()) << left << linea << "¦\n";
-    }
-
-    {
-        string linea = aString(t.cantidad) + " unidades";
-        cout << "¦ Cantidad: " << setw(47) << left << linea << "¦\n";
-    }
-
-    {
-        char buffer[50];
-        sprintf(buffer, "$%.2f", t.precioUnitario);
-        cout << "¦ Precio Unitario: " << setw(40) << left << buffer << "¦\n";
-    }
-
-    {
-        char buffer[50];
-        sprintf(buffer, "$%.2f", t.total);
-        cout << "¦ Total: " << setw(50) << left << buffer << "¦\n";
-    }
-
-    cout << "¦ Fecha: " << setw(52) << left << t.fecha << "¦\n";
-    cout << "¦ Descripción: " << setw(44) << left << t.descripcion << "¦\n";
-
+    cout << "|              DETALLE DE TRANSACCION (DISCO)               |\n";
+    cout << "+-----------------------------------------------------------+\n";
+    cout << "| ID: " << setw(54) << left << t.id << "|\n";
+    cout << "| Producto: " << setw(48) << left << (encontrado ? p.nombre : "No encontrado") << "|\n";
+    cout << "| Cantidad: " << setw(48) << left << t.cantidad << "|\n";
+    cout << "| Total:    $" << setw(47) << left << fixed << setprecision(2) << t.total << "|\n";
+    cout << "| Fecha:    " << setw(48) << left << t.fecha << "|\n";
     cout << "+-----------------------------------------------------------+\n";
 }
 
@@ -1172,42 +1251,25 @@ void actualizarProducto(Tienda* tienda) {
 //2.2.4
 //========================
 
-void actualizarStockProducto(Tienda* tienda) {
-    int id;
-    cout << "Ingrese el ID del producto: ";
-    cin >> id;
+void actualizarStockProducto(int idProducto, int cantidadCambio) {
+    int indice = buscarProductoPorID(idProducto); // Tu funci�n ya devuelve el �ndice
+    if (indice == -1) return;
 
-    int index = buscarProductoPorID(tienda, id);
-    if (index == -1) {
-        cout << "ERROR: No existe un producto con ese ID.\n";
-        return;
-    }
+    FILE* f = fopen("productos.bin", "r+b"); // r+b es vital para sobreescribir
+    if (!f) return;
 
-    Producto* p = &tienda->productos[index];
+    Producto p;
+    // Nos saltamos el header y llegamos al registro exacto
+    fseek(f, sizeof(ArchivoHeader) + (indice * sizeof(Producto)), SEEK_SET);
+    fread(&p, sizeof(Producto), 1, f);
 
-    cout << "\n=== ACTUALIZAR STOCK ===\n";
-    cout << "Producto: " << p->nombre << endl;
-    cout << "Stock actual: " << p->stock << endl;
+    p.stock += cantidadCambio; // Actualizamos el dato en memoria
 
-    int ajuste;
-    cout << "Ingrese ajuste (+ para aumentar, - para disminuir): ";
-    cin >> ajuste;
+    // Volvemos atr�s para sobreescribir el registro con el nuevo stock
+    fseek(f, sizeof(ArchivoHeader) + (indice * sizeof(Producto)), SEEK_SET);
+    fwrite(&p, sizeof(Producto), 1, f);
 
-    int nuevoStock = p->stock + ajuste;
-
-    if (nuevoStock < 0) {
-        cout << "ERROR: Stock insuficiente. Disponible: " 
-             << p->stock << ", Solicitado: " << (-ajuste) << endl;
-        return;
-    }
-
-    cout << "Stock final sería: " << nuevoStock << endl;
-
-    if (!confirmar("¿Confirmar cambio? (S/N): "))
-        return;
-
-    p->stock = nuevoStock;
-    cout << "Stock actualizado exitosamente.\n";
+    fclose(f);
 }
 
 //========================
