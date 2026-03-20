@@ -1,32 +1,52 @@
 # Inventario-prog2
-Este programa implementa un sistema de gestión de inventario para una tienda, desarrollado en C++ utilizando memoria dinámica, estructuras personalizadas y un menú interactivo. Permite administrar productos, proveedores, clientes y transacciones, cumpliendo con los requisitos de modularidad, validaciones y redimensionamiento de arreglos exigidos en el proyecto.
 
-Inicialización:  
-Se crean los arreglos dinámicos para productos, proveedores, clientes y transacciones, junto con sus contadores e IDs autoincrementales.
+## Descripción General
+Sistema desarrollado en C++ para la gestión completa de inventario, proveedores, clientes y transacciones de una tienda tecnológica. Utiliza archivos binarios para el almacenamiento persistente de datos.
 
-Menú Principal:  
-El usuario selecciona una operación:
-Productos (crear, buscar, actualizar, stock, eliminar, listar)
-Proveedores (crear, buscar, actualizar, eliminar, listar)
-Clientes (crear, buscar, actualizar, eliminar, listar)
-Operaciones CRUD:  
+## Características Principales
 
-Cada módulo permite:
-Crear: Solicita datos, valida duplicados y formatos, asigna fecha y guarda.
-Buscar: Por ID o coincidencia parcial (nombre, código, RIF, cédula).
-Actualizar: Permite modificar campos con validaciones.
-Eliminar: Solo si no tiene elementos asociados (productos, ventas, etc.).
-Listar: Muestra tablas formateadas con iomanip.
+### Módulo de Productos
+- Registro de productos con código único, nombre, descripción, precio y stock
+- Asignación automática de ID
+- Búsqueda por ID, nombre o código
+- Actualización de datos y stock
+- Listado completo en formato tabular
+- Eliminación lógica (sin borrado físico)
 
-Validaciones:  
-El sistema verifica:
-Emails válidos
-Códigos, RIF y cédulas duplicadas
-Existencia de IDs
-Fechas en formato correcto
+### Módulo de Proveedores
+- Registro con RIF único, nombre, email y teléfono
+- Validación de RIF duplicado
+- Búsqueda por ID, nombre o RIF
+- Vinculación con productos (no se puede eliminar si tiene productos asociados)
 
-Redimensionamiento:  
-Si un arreglo se llena, se duplica su capacidad y se copian los datos.
+### Módulo de Clientes
+- Registro con cédula/RIF único
+- Datos de contacto: email, teléfono, dirección
+- Validación de formato de email
+- Búsqueda por ID, nombre o cédula
 
-Salida:  
-Al terminar, se libera toda la memoria dinámica.
+### Módulo de Transacciones
+- **Registro de Compras**: Entrada de productos al inventario (actualiza stock automáticamente)
+- **Registro de Ventas**: Salida de productos con verificación de stock disponible
+- **Búsqueda** por ID de factura, producto, cliente/proveedor o fecha
+- **Cancelación de transacciones**: Revierte automáticamente el stock afectado
+- Historial completo con resumen financiero
+
+## Almacenamiento
+- Archivos binarios: `productos.bin`, `proveedores.bin`, `clientes.bin`, `transacciones.bin`
+- Header con metadatos (cantidad de registros, próximo ID)
+- Borrado lógico (campo `eliminado`)
+- Integridad referencial básica entre módulos
+
+## Validaciones Implementadas
+- Códigos y RIFs únicos
+- Stock suficiente antes de vender
+- Existencia de proveedor/cliente antes de transacción
+- Formato de email válido
+- Prevención de eliminación de registros con dependencias
+
+## Interfaz
+- Menús intuitivos por consola
+- Tablas formateadas para visualización de datos
+- Confirmaciones antes de operaciones críticas
+- Mensajes de error claros
