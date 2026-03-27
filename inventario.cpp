@@ -2452,11 +2452,11 @@ void menuTransacciones() {
         cout << "|           MENU DE TRANSACCIONES           |\n";
         cout << "+-------------------------------------------+\n\n";
         
-        cout << "1. Registrar compra (Entrada Inventario)\n";
-        cout << "2. Registrar venta (Salida Inventario)\n";
+        cout << "1. Registrar compra\n";
+        cout << "2. Registrar venta\n";
         cout << "3. Buscar transacciones\n";
         cout << "4. Listar historial completo\n";
-        cout << "5. Cancelar transaccion (Revertir stock)\n";
+        cout << "5. Cancelar transaccion\n";
         cout << "0. Volver al menu principal\n\n";
         
         cout << "Seleccione una opcion: ";
