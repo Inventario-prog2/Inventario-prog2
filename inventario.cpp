@@ -12,78 +12,270 @@
 using namespace std;
 
 //1.1 Estructura Producto
-struct Producto {
-    int id;                    // Identificador √∫nico (autoincremental)
-    char codigo[20];           // C√≥digo del producto (ej: "PROD-001")
-    char nombre[100];          // Nombre del producto
-    char descripcion[200];     // Descripci√≥n del producto
-    int idProveedor;           // ID del proveedor asociado
-    float precio;              // Precio unitario
-    int stock;                 // Cantidad en inventario
-    char fechaRegistro[11];    // Formato: YYYY-MM-DD
-    
-    int stockMinimo;                 
-    int totalVendido;                
-    bool eliminado;                  // Borrado lÛgico
-};
+class Producto {
+private:
+    int id;
+    char codigo[20];
+    char nombre[100];
+    char descripcion[200];
+    int idProveedor;
+    float precio;
+    int stock;
+    char fechaRegistro[11];
+    int stockMinimo;
+    int totalVendido;
+    bool eliminado;
 
+public:
+    // 1. CONSTRUCTOR VACÕO (Para lectura de archivos)
+    Producto() {
+        id = 0;
+        precio = 0.0f;
+        stock = 0;
+        stockMinimo = 0;
+        totalVendido = 0;
+        eliminado = false;
+        idProveedor = 0;
+        memset(codigo, 0, sizeof(codigo));
+        memset(nombre, 0, sizeof(nombre));
+        memset(descripcion, 0, sizeof(descripcion));
+        memset(fechaRegistro, 0, sizeof(fechaRegistro));
+    }
+
+    // 2. CONSTRUCTOR PARAMETRIZADO (Para crear nuevos)
+    Producto(int _id, const char* _nombre, float _precio, int _stock) {
+        // Primero limpiamos todo para que no haya basura
+        *this = Producto(); 
+        
+        id = _id;
+        precio = _precio;
+        stock = _stock;
+        strncpy(nombre, _nombre, sizeof(nombre) - 1);
+    }
+
+    // 3. GETTERS
+    int getId() const { return id; }
+    float getPrecio() const { return precio; }
+    int getStock() const { return stock; }
+    bool isEliminado() const { return eliminado; }
+    const char* getNombre() const { return nombre; }
+
+    // 4. SETTERS
+    void setPrecio(float _precio) { if(_precio >= 0) precio = _precio; }
+    void setStock(int _stock) { if(_stock >= 0) stock = _stock; }
+    void setEliminado(bool _estado) { eliminado = _estado; }
+};
 //1.2 Estructura Proveedor
 
-struct Proveedor {
-    int id;                    // Identificador √∫nico (autoincremental)
-    char nombre[100];          // Nombre del proveedor
-    char rif[20];              // RIF o identificaci√≥n fiscal
-    char telefono[20];         // Tel√©fono de contacto
-    char email[100];           // Correo electr√≥nico
-    char direccion[200];       // Direcci√≥n f√≠sica
-    char fechaRegistro[11];    // Formato: YYYY-MM-DD
-    bool eliminado;                  // Borrado lÛgico
+class Proveedor {
+private:
+    int id;
+    char nombre[100];
+    char rif[20];
+    char telefono[20];
+    char email[100];
+    char direccion[200];
+    char fechaRegistro[11];
+    bool eliminado;
+
+public:
+    // 1. Constructor
+    Proveedor() {
+        id = 0;
+        eliminado = false;
+        memset(nombre, 0, sizeof(nombre));
+        memset(rif, 0, sizeof(rif));
+        memset(telefono, 0, sizeof(telefono));
+        memset(email, 0, sizeof(email));
+        memset(direccion, 0, sizeof(direccion));
+        memset(fechaRegistro, 0, sizeof(fechaRegistro));
+    }
+
+    // 2. Constructor parametrizado
+    Proveedor(int _id, const char* _nombre, const char* _rif) {
+        *this = Proveedor(); // Inicializa todo en limpio primero
+        id = _id;
+        strncpy(nombre, _nombre, sizeof(nombre) - 1);
+        strncpy(rif, _rif, sizeof(rif) - 1);
+    }
+
+    // 3. Getters
+    int getId() const { return id; }
+    const char* getNombre() const { return nombre; }
+    const char* getRif() const { return rif; }
+    bool isEliminado() const { return eliminado; }
+
+    // 4. Setters
+    void setNombre(const char* _nombre) { strncpy(nombre, _nombre, sizeof(nombre) - 1); }
+    void setEliminado(bool _estado) { eliminado = _estado; }
 };
 
-//1.3 Estructura Cliente
+//1.3 cliente
+class Cliente {
+private:
+    int id;
+    char nombre[100];
+    char cedula[20];
+    char telefono[20];
+    char email[100];
+    char direccion[200];
+    char fechaRegistro[11];
+    bool eliminado;
 
-struct Cliente {
-    int id;                    // Identificador √∫nico (autoincremental)
-    char nombre[100];          // Nombre completo del cliente
-    char cedula[20];           // C√©dula o RIF
-    char telefono[20];         // Tel√©fono de contacto
-    char email[100];           // Correo electr√≥nico
-    char direccion[200];       // Direcci√≥n f√≠sica
-    char fechaRegistro[11];    // Formato: YYYY-MM-DD
-    bool eliminado;                  // Borrado lÛgico
+public:
+    // 1. Constructor
+    Cliente() {
+        id = 0;
+        eliminado = false;
+        // Limpiamos TODA la basura de la RAM
+        memset(nombre, 0, sizeof(nombre));
+        memset(cedula, 0, sizeof(cedula));
+        memset(telefono, 0, sizeof(telefono));
+        memset(email, 0, sizeof(email));
+        memset(direccion, 0, sizeof(direccion));
+        memset(fechaRegistro, 0, sizeof(fechaRegistro));
+    }
+
+    // 2. Constructor parametrizado
+    Cliente(int _id, const char* _nombre, const char* _cedula) {
+        // Llamamos al constructor por defecto para que limpie todo primero
+        *this = Cliente(); 
+        
+        id = _id;
+        // Usamos strncpy para no desbordar el arreglo
+        strncpy(nombre, _nombre, sizeof(nombre) - 1);
+        strncpy(cedula, _cedula, sizeof(cedula) - 1);
+    }
+
+    // 3. Getters
+    int getId() const { return id; }
+    const char* getNombre() const { return nombre; }
+    const char* getCedula() const { return cedula; }
+    bool isEliminado() const { return eliminado; }
+
+    // 4. Setters
+    void setNombre(const char* _nombre) { strncpy(nombre, _nombre, sizeof(nombre) - 1); }
+    void setEliminado(bool _estado) { eliminado = _estado; }
 };
 
-//1.4 Estructura Transacci√≥n (CASO ESPECIAL: Esta estructura puede separarse como se coment√≥ en clase, tienen libertad de hacerlo.)
+//1.4 Estructura Transacci√≥n 
 
-struct Transaccion {
+class Transaccion {
+private:
     int id;
     char tipo[10];           // "COMPRA" o "VENTA"
     int idRelacionado;       // ID del proveedor o cliente
     
-    // Soporte para m˙ltiples productos (M·ximo 20 por factura)
     int idProductos[20];    
     int cantidades[20];      
-    float precioUnitario[20]; // <-- AGREGA ESTO para guardar el precio de cada item
-    int numItems;            // Cu·ntos de los 20 espacios se usaron
+    float precioUnitario[20]; 
+    int numItems;            // °Controla el llenado de los arreglos!
     
     float total;
     char fechaRegistro[11];
     char descripcion[200];
-    bool eliminado;          // Borrado lÛgico
+    bool eliminado;
+
+public:
+    // 1. Constructor por defecto (Limpieza total)
+    Transaccion() {
+        id = 0;
+        idRelacionado = 0;
+        numItems = 0; // SUPER IMPORTANTE: Empezamos en el Ìndice 0
+        total = 0.0f;
+        eliminado = false;
+
+        // Limpieza de cadenas
+        memset(tipo, 0, sizeof(tipo));
+        memset(fechaRegistro, 0, sizeof(fechaRegistro));
+        memset(descripcion, 0, sizeof(descripcion));
+
+        // Limpieza de arreglos paralelos
+        for (int i = 0; i < 20; i++) {
+            idProductos[i] = 0;
+            cantidades[i] = 0;
+            precioUnitario[i] = 0.0f;
+        }
+    }
+
+    // 2. MÈtodo para agregar productos (LÛgica de negocio)
+    // No puedes acceder a los arreglos directamente desde fuera, asÌ que usas esto:
+    bool agregarDetalle(int _idProd, int _cant, float _precio) {
+        if (numItems < 20) {
+            idProductos[numItems] = _idProd;
+            cantidades[numItems] = _cant;
+            precioUnitario[numItems] = _precio;
+            
+            // Actualizamos el total de la transacciÛn autom·ticamente
+            total += (_cant * _precio);
+            
+            numItems++; // Avanzamos al siguiente espacio
+            return true;
+        }
+        return false; // Error: Factura llena
+    }
+
+    // 3. Getters b·sicos
+    int getId() const { return id; }
+    float getTotal() const { return total; }
+    int getNumItems() const { return numItems; }
+    const char* getTipo() const { return tipo; }
+    
+    // Setters necesarios
+    void setId(int _id) { id = _id; }
+    void setTipo(const char* _tipo) { strncpy(tipo, _tipo, sizeof(tipo) - 1); }
+    void setIdRelacionado(int _idRel) { idRelacionado = _idRel; }
 };
 
 //1.5 Estructura Principal: Tienda
 
-struct Tienda {
+class Tienda {
+private:
     char nombre[100];
     char rif[20];
     char direccion[200];
     char telefono[20];
     
-    // EstadÌsticas globales (˙tiles para reportes)
     float totalVentasHistoricas;
     float totalComprasHistoricas;
     int cantidadOperaciones;
+
+public:
+    // Constructor: Inicializa la tienda con valores en cero o por defecto
+    Tienda() {
+        memset(nombre, 0, sizeof(nombre));
+        memset(rif, 0, sizeof(rif));
+        memset(direccion, 0, sizeof(direccion));
+        memset(telefono, 0, sizeof(telefono));
+        
+        totalVentasHistoricas = 0.0f;
+        totalComprasHistoricas = 0.0f;
+        cantidadOperaciones = 0;
+    }
+
+    // Constructor con datos iniciales
+    Tienda(const char* _nom, const char* _rif) {
+        *this = Tienda(); // Limpia todo primero
+        strncpy(nombre, _nom, sizeof(nombre) - 1);
+        strncpy(rif, _rif, sizeof(rif) - 1);
+    }
+
+    // MÈtodos para actualizar estadÌsticas (LÛgica de negocio)
+    void registrarVenta(float monto) {
+        totalVentasHistoricas += monto;
+        cantidadOperaciones++;
+    }
+
+    void registrarCompra(float monto) {
+        totalComprasHistoricas += monto;
+        cantidadOperaciones++;
+    }
+
+    // Getters para los reportes
+    const char* getNombre() const { return nombre; }
+    float getTotalVentas() const { return totalVentasHistoricas; }
+    float getTotalCompras() const { return totalComprasHistoricas; }
+    int getCantOperaciones() const { return cantidadOperaciones; }
 };
 
 
