@@ -1,0 +1,67 @@
+# Project: inventario
+# Makefile created by Dev-C++ 5.5.3
+
+CPP      = g++.exe
+CC       = gcc.exe
+WINDRES  = windres.exe
+OBJ      = main.o clientes/cliente.o clientes/operacionesClientes.o interfaz/Interfaz.o persistencia/GestorArchivos.o productos/operacionesProductos.o productos/Producto.o proveedores/operacionesProveedores.o proveedores/Proveedor.o tienda/tienda.o transacciones/operacionesTransacciones.o transacciones/Transaccion.o utilidades/formatos.o utilidades/validaciones.o
+LINKOBJ  = main.o clientes/cliente.o clientes/operacionesClientes.o interfaz/Interfaz.o persistencia/GestorArchivos.o productos/operacionesProductos.o productos/Producto.o proveedores/operacionesProveedores.o proveedores/Proveedor.o tienda/tienda.o transacciones/operacionesTransacciones.o transacciones/Transaccion.o utilidades/formatos.o utilidades/validaciones.o
+LIBS     = -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib" -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib" -static-libgcc -mwindows
+INCS     = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include"
+CXXINCS  = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.7.1/include/c++"
+BIN      = inventario.exe
+CXXFLAGS = $(CXXINCS) -std=c++11
+CFLAGS   = $(INCS) -std=c++11
+RM       = rm -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN)
+
+$(BIN): $(OBJ)
+	$(CPP) $(LINKOBJ) -o $(BIN) $(LIBS)
+
+main.o: main.cpp
+	$(CPP) -c main.cpp -o main.o $(CXXFLAGS)
+
+clientes/cliente.o: clientes/cliente.cpp
+	$(CPP) -c clientes/cliente.cpp -o clientes/cliente.o $(CXXFLAGS)
+
+clientes/operacionesClientes.o: clientes/operacionesClientes.cpp
+	$(CPP) -c clientes/operacionesClientes.cpp -o clientes/operacionesClientes.o $(CXXFLAGS)
+
+interfaz/Interfaz.o: interfaz/Interfaz.cpp
+	$(CPP) -c interfaz/Interfaz.cpp -o interfaz/Interfaz.o $(CXXFLAGS)
+
+persistencia/GestorArchivos.o: persistencia/GestorArchivos.cpp
+	$(CPP) -c persistencia/GestorArchivos.cpp -o persistencia/GestorArchivos.o $(CXXFLAGS)
+
+productos/operacionesProductos.o: productos/operacionesProductos.cpp
+	$(CPP) -c productos/operacionesProductos.cpp -o productos/operacionesProductos.o $(CXXFLAGS)
+
+productos/Producto.o: productos/Producto.cpp
+	$(CPP) -c productos/Producto.cpp -o productos/Producto.o $(CXXFLAGS)
+
+proveedores/operacionesProveedores.o: proveedores/operacionesProveedores.cpp
+	$(CPP) -c proveedores/operacionesProveedores.cpp -o proveedores/operacionesProveedores.o $(CXXFLAGS)
+
+proveedores/Proveedor.o: proveedores/Proveedor.cpp
+	$(CPP) -c proveedores/Proveedor.cpp -o proveedores/Proveedor.o $(CXXFLAGS)
+
+tienda/tienda.o: tienda/tienda.cpp
+	$(CPP) -c tienda/tienda.cpp -o tienda/tienda.o $(CXXFLAGS)
+
+transacciones/operacionesTransacciones.o: transacciones/operacionesTransacciones.cpp
+	$(CPP) -c transacciones/operacionesTransacciones.cpp -o transacciones/operacionesTransacciones.o $(CXXFLAGS)
+
+transacciones/Transaccion.o: transacciones/Transaccion.cpp
+	$(CPP) -c transacciones/Transaccion.cpp -o transacciones/Transaccion.o $(CXXFLAGS)
+
+utilidades/formatos.o: utilidades/formatos.cpp
+	$(CPP) -c utilidades/formatos.cpp -o utilidades/formatos.o $(CXXFLAGS)
+
+utilidades/validaciones.o: utilidades/validaciones.cpp
+	$(CPP) -c utilidades/validaciones.cpp -o utilidades/validaciones.o $(CXXFLAGS)
