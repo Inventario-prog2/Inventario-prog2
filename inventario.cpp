@@ -55,15 +55,26 @@ public:
 
     // 3. GETTERS
     int getId() const { return id; }
+    const char* getCodigo() const { return codigo; } // <--- FALTABA ESTA LÍNEA
     float getPrecio() const { return precio; }
     int getStock() const { return stock; }
     bool isEliminado() const { return eliminado; }
     const char* getNombre() const { return nombre; }
-
+	const char* getDescripcion() const { return descripcion; }
+	int getIdProveedor() const { return idProveedor; }
+	const char* getFechaRegistro() const { return fechaRegistro; }
+	int getStockMinimo() const { return stockMinimo; }
+	int getTotalVendido() const { return totalVendido; }
     // 4. SETTERS
     void setPrecio(float _precio) { if(_precio >= 0) precio = _precio; }
     void setStock(int _stock) { if(_stock >= 0) stock = _stock; }
     void setEliminado(bool _estado) { eliminado = _estado; }
+    void setId(int _id) { id = _id; }
+    void setCodigo(const char* _cod) { strncpy(codigo, _cod, sizeof(codigo) - 1); codigo[sizeof(codigo)-1] = '\0'; }
+    void setNombre(const char* _nom) { strncpy(nombre, _nom, sizeof(nombre) - 1); nombre[sizeof(nombre)-1] = '\0'; }
+    void setDescripcion(const char* _desc) { strncpy(descripcion, _desc, sizeof(descripcion) - 1); descripcion[sizeof(descripcion)-1] = '\0'; }
+    void setIdProveedor(int _idProv) { idProveedor = _idProv; }
+    void setFechaRegistro(const char* _fec) { strncpy(fechaRegistro, _fec, sizeof(fechaRegistro) - 1); }
 };
 //1.2 Estructura Proveedor
 
@@ -104,10 +115,18 @@ public:
     const char* getNombre() const { return nombre; }
     const char* getRif() const { return rif; }
     bool isEliminado() const { return eliminado; }
-
+    const char* getTelefono() const { return telefono; }
+    const char* getEmail() const { return email; }
+    const char* getDireccion() const { return direccion; }
+    const char* getFechaRegistro() const { return fechaRegistro; }
+    
     // 4. Setters
     void setNombre(const char* _nombre) { strncpy(nombre, _nombre, sizeof(nombre) - 1); }
     void setEliminado(bool _estado) { eliminado = _estado; }
+    void setId(int _id) { id = _id; }
+    void setRif(const char* _r) { strncpy(rif, _r, 19)[19] = '\0'; }
+    void setEmail(const char* _e) { strncpy(email, _e, 99)[99] = '\0'; }
+    void setTelefono(const char* _t) { strncpy(telefono, _t, 19)[19] = '\0'; }
 };
 
 //1.3 cliente
@@ -152,10 +171,21 @@ public:
     const char* getNombre() const { return nombre; }
     const char* getCedula() const { return cedula; }
     bool isEliminado() const { return eliminado; }
+    const char* getTelefono() const { return telefono; }
+    const char* getEmail() const { return email; }
+    const char* getDireccion() const { return direccion; }
+    const char* getFechaRegistro() const { return fechaRegistro; }
 
     // 4. Setters
     void setNombre(const char* _nombre) { strncpy(nombre, _nombre, sizeof(nombre) - 1); }
     void setEliminado(bool _estado) { eliminado = _estado; }
+    void setFecha(const char* _f) { strncpy(fechaRegistro, _f, sizeof(fechaRegistro)-1); }
+    void setId(int _id) { id = _id; }
+    // --- SETTERS COMPACTOS PARA CLIENTE ---
+    void setCedula(const char* _c) { strncpy(cedula, _c, 19)[19] = '\0'; }
+    void setEmail(const char* _e) { strncpy(email, _e, 99)[99] = '\0'; }
+    void setTelefono(const char* _t) { strncpy(telefono, _t, 19)[19] = '\0'; }
+    void setDireccion(const char* _d) { strncpy(direccion, _d, 199)[199] = '\0'; }
 };
 
 //1.4 Estructura TransacciÃ³n 
@@ -217,14 +247,34 @@ public:
 
     // 3. Getters básicos
     int getId() const { return id; }
+    int getIdRelacionado() const { return idRelacionado;}
     float getTotal() const { return total; }
     int getNumItems() const { return numItems; }
     const char* getTipo() const { return tipo; }
-    
+    int getIdProducto(int indice) const { return idProductos[indice]; }
+    int getCantidad(int index) const { return cantidades[index]; }
+    const char* getFecha() const { return fechaRegistro; }
+    bool isEliminado() const { return eliminado; }
+      
     // Setters necesarios
     void setId(int _id) { id = _id; }
     void setTipo(const char* _tipo) { strncpy(tipo, _tipo, sizeof(tipo) - 1); }
     void setIdRelacionado(int _idRel) { idRelacionado = _idRel; }
+    void setEliminado(bool _e) { eliminado = _e; }
+    void setFecha(const char* _f) { strncpy(fechaRegistro, _f, sizeof(fechaRegistro)-1); }
+    void setTotal(float _t) { total = (_t >= 0) ? _t : 0; }
+    void setDescripcion(const char* _desc) { strncpy(descripcion, _desc, 99); descripcion[99] = '\0'; }
+    void setFechaRegistro(const char* _fecha) { strncpy(fechaRegistro, _fecha, 10); fechaRegistro[10] = '\0'; }
+    void setIdProductoEnIndice(int index, int _idProd) {
+        if (index >= 0 && index < 20) idProductos[index] = _idProd;
+    }
+    void setCantidad(int index, int _cant) {
+        if (index >= 0 && index < 20) cantidades[index] = _cant;
+    }
+    void setPrecioUnitario(int index, float _precio) {
+        if (index >= 0 && index < 20) precioUnitario[index] = _precio;
+    }
+    void setNumItems(int _n) { numItems = (_n >= 0 && _n <= 20) ? _n : 0; }
 };
 
 //1.5 Estructura Principal: Tienda
@@ -276,6 +326,12 @@ public:
     float getTotalVentas() const { return totalVentasHistoricas; }
     float getTotalCompras() const { return totalComprasHistoricas; }
     int getCantOperaciones() const { return cantidadOperaciones; }
+    
+    void setNombre(const char* n) { strcpy(nombre, n); }
+	void setRif(const char* r) { strcpy(rif, r); }
+	void setTotalVentas(float v) { totalVentasHistoricas = v; }
+	void setTotalCompras(float c) { totalComprasHistoricas = c; }
+	void setCantidadOperaciones(int o) { cantidadOperaciones = o; }
 };
 
 
@@ -350,7 +406,10 @@ void convertirAMinusculas(char* cadena) {
 
 bool contiene(const char* campo, const string& filtro) {
     string a = toLower(campo);
-    return a.find(filtro) != string::npos;
+    string f = ""; 
+    // Convertir también el filtro a minúsculas para que coincidan
+    for(char c : filtro) f += tolower(c); 
+    return a.find(f) != string::npos;
 }
 
 bool codigoProductoDuplicado(const char* codigo, int idIgnorar = -1) {
@@ -361,20 +420,21 @@ bool codigoProductoDuplicado(const char* codigo, int idIgnorar = -1) {
     fread(&h, sizeof(ArchivoHeader), 1, f);
 
     Producto p;
-    // Recorremos todos los registros guardados en el archivo
-    for (int i = 0; i < h.cantidadRegistros; i++) {
-        if (fread(&p, sizeof(Producto), 1, f)) {
-            if (!p.eliminado && p.id != idIgnorar) {
-                if (strcmp(p.codigo, codigo) == 0) {
-                    fclose(f);
-                    return true; // Encontrado en disco
-                }
+    // Recorremos los registros en el archivo
+    while (fread(&p, sizeof(Producto), 1, f)) {
+        // 1. Verificamos que no esté eliminado
+        // 2. Verificamos que no sea el mismo ID que estamos editando (idIgnorar)
+        if (!p.isEliminado() && p.getId() != idIgnorar) {
+            // 3. Comparamos los códigos de texto
+            if (strcmp(p.getCodigo(), codigo) == 0) {
+                fclose(f);
+                return true; 
             }
         }
     }
 
     fclose(f);
-    return false; // No hay duplicados
+    return false; 
 }
 
 void obtenerFechaActual(char* buffer) {
@@ -411,12 +471,23 @@ void obtenerNombreProveedorBin(int idBuscado, char* destino) {
 
     Proveedor p;
     while (fread(&p, sizeof(Proveedor), 1, f)) {
-        if (!p.eliminado && p.id == idBuscado) {
-            strcpy(destino, p.nombre);
-            break;
-        }
+        // Cambio necesario para cuando Proveedor sea clase:
+		if (!p.isEliminado() && p.getId() == idBuscado) {
+ 	   strcpy(destino, p.getNombre());
+    	break;
+		}
     }
     fclose(f);
+}
+
+bool sinEspacios(const char* texto) {
+    if (texto == nullptr) return false;
+
+    for (int i = 0; texto[i] != '\0'; i++) {
+        if (isspace(texto[i])) // Verifica espacios, tabs o saltos de línea
+            return false;
+    }
+    return true;
 }
 
 void solicitarString(const char* mensaje, char* destino, int maxLen,
@@ -441,22 +512,12 @@ void solicitarString(const char* mensaje, char* destino, int maxLen,
     }
 }
 
-bool sinEspacios(const char* texto) {
-    for (int i = 0; texto[i] != '\0'; i++)
-        if (texto[i] == ' ')
-            return false;
-    return true;
-}
-
-
 bool emailValido(const char* email) {
+    if (!sinEspacios(email)) return false; // Un email no puede tener espacios
     const char* at = strchr(email, '@');
-    if (!at) return false;
-
+    if (!at || at == email) return false; // Debe haber algo antes del @
     const char* punto = strchr(at, '.');
-    if (!punto) return false;
-
-    return true;
+    return punto && *(punto + 1) != '\0'; // Debe haber algo después del punto
 }
 
 bool rifDuplicado(const char* rif, int idIgnorar = -1) {
@@ -468,8 +529,10 @@ bool rifDuplicado(const char* rif, int idIgnorar = -1) {
 
     Proveedor p;
     while (fread(&p, sizeof(Proveedor), 1, f)) {
-        if (!p.eliminado && p.id != idIgnorar) {
-            if (strcmp(p.rif, rif) == 0) {
+        // Usamos getters: isEliminado() y getId()
+        if (!p.isEliminado() && p.getId() != idIgnorar) {
+            // Nota: Si 'rif' en la clase es privado, asegúrate de tener un getRif()
+            if (strcmp(p.getRif(), rif) == 0) { 
                 fclose(f);
                 return true;
             }
@@ -488,14 +551,15 @@ bool clienteDuplicado(const char* cedula, int idIgnorar = -1) {
 
     Cliente c;
     while (fread(&c, sizeof(Cliente), 1, f)) {
-        if (!c.eliminado && c.id != idIgnorar) {
-            if (strcmp(c.cedula, cedula) == 0) {
+        // Usamos getters: isEliminado() y getId()
+        if (!c.isEliminado() && c.getId() != idIgnorar) {
+            // Asegúrate de tener getCedula() en tu clase Cliente
+            if (strcmp(c.getCedula(), cedula) == 0) { 
                 fclose(f);
                 return true;
             }
         }
     }
-
     fclose(f);
     return false;
 }
@@ -512,15 +576,17 @@ bool confirmar(const char* mensaje) {
 
 int solicitarEnteroPositivo(const char* mensaje) {
     int valor;
-    cout << mensaje;
-    cin >> valor;
-
-    while (valor <= 0) {
-        cout << "ERROR: Debe ser mayor a 0.\n";
+    while (true) {
         cout << mensaje;
-        cin >> valor;
+        if (cin >> valor && valor > 0) {
+            cin.ignore(1000, '\n');
+            return valor;
+        } else {
+            cout << "ERROR: Entrada no valida. Ingrese un numero mayor a 0.\n";
+            cin.clear(); // Limpia el error de cin
+            cin.ignore(1000, '\n'); // Descarta lo que el usuario escribió mal
+        }
     }
-    return valor;
 }
 int solicitarEnteroNoNegativo(const char* mensaje) {
     int valor;
@@ -547,9 +613,10 @@ bool buscarProductoPorID(int idBuscado, Producto* resultado) {
 
     Producto p;
     while (fread(&p, sizeof(Producto), 1, f)) {
-        if (!p.eliminado && p.id == idBuscado) {
+        // CAMBIO: Usar p.isEliminado() y p.getId()
+        if (!p.isEliminado() && p.getId() == idBuscado) {
             if (resultado != nullptr) {
-                *resultado = p; // Copiamos los datos al "contenedor" que nos pasaron
+                *resultado = p; 
             }
             fclose(f);
             return true;
@@ -564,31 +631,23 @@ bool existeProducto(int idBuscado) {
 }
 
 void mostrarProducto(const Producto& p) {
-    cout << "CÃ³digo: " << p.codigo << endl;
-    cout << "Nombre: " << p.nombre << endl;
-    cout << "DescripciÃ³n: " << p.descripcion << endl;
-    cout << "Proveedor ID: " << p.idProveedor << endl;
-    cout << "Precio: " << p.precio << endl;
-    cout << "Stock: " << p.stock << endl;
-    cout << "Fecha: " << p.fechaRegistro << endl;
+    cout << "ID: " << p.getId() << endl; // ¡No olvides el ID!
+    cout << "Codigo: " << p.getCodigo() << endl;
+    cout << "Nombre: " << p.getNombre() << endl;
+    cout << "Descripcion: " << p.getDescripcion() << endl;
+    cout << "Proveedor ID: " << p.getIdProveedor() << endl; 
+    cout << "Precio: " << p.getPrecio() << endl;
+    cout << "Stock: " << p.getStock() << endl;
+    cout << "Fecha: " << p.getFechaRegistro() << endl; 
 }
 
 void obtenerNombreProductoBin(int idBuscado, char* destino) {
-    strcpy(destino, "Desconocido");
-    FILE* f = fopen("productos.bin", "rb");
-    if (!f) return;
-
-    ArchivoHeader h;
-    fread(&h, sizeof(ArchivoHeader), 1, f);
-
     Producto p;
-    while (fread(&p, sizeof(Producto), 1, f)) {
-        if (p.id == idBuscado) {
-            strcpy(destino, p.nombre);
-            break;
-        }
+    if (buscarProductoPorID(idBuscado, &p)) {
+        strcpy(destino, p.getNombre());
+    } else {
+        strcpy(destino, "Desconocido");
     }
-    fclose(f);
 }
 
 //================
@@ -618,14 +677,15 @@ void encabezadoProductos() {
 
 //fila
 void filaProducto(const Producto& p, const char* nombreProv) {
-    cout << "Â¦ "
-         << setw(2)  << left << p.id << " Â¦ "
-         << setw(9)  << left << p.codigo << " Â¦ "
-         << setw(16) << left << p.nombre << " Â¦ "
-         << setw(12) << left << nombreProv << " Â¦ "
-         << setw(5)  << left << p.precio << " Â¦ "
-         << setw(6)  << left << p.stock << " Â¦ "
-         << setw(4)  << left << p.fechaRegistro << " Â¦\n";
+    // Usamos los Getters para acceder a los datos privados
+    cout << "¦ "
+         << setw(2)  << left << p.getId() << " ¦ "
+         << setw(9)  << left << p.getCodigo() << " ¦ "
+         << setw(16) << left << p.getNombre() << " ¦ "
+         << setw(12) << left << nombreProv << " ¦ "
+         << setw(5)  << left << p.getPrecio() << " ¦ "
+         << setw(6)  << left << p.getStock() << " ¦ "
+         << setw(5)  << left << p.getFechaRegistro() << " ¦\n";
 }
 
 void pieProductos() {
@@ -645,12 +705,12 @@ void MostrarProductosPorNombre(const char* filtro) {
 
     encabezadoProductos();
     while (fread(&p, sizeof(Producto), 1, f)) {
-        if (!p.eliminado && contiene(p.nombre, filtroMin)) { // Usamos tu utilidad contiene
-            char provNombre[50];
-            obtenerNombreProveedorBin(p.idProveedor, provNombre);
-            filaProducto(p, provNombre);
-            encontrado = true;
-        }
+      	if (!p.isEliminado() && contiene(p.getNombre(), filtroMin.c_str())) { 
+   			char provNombre[50];
+    		obtenerNombreProveedorBin(p.getIdProveedor(), provNombre);
+   			filaProducto(p, provNombre);
+   			encontrado = true;
+}
     }
     pieProductos();
 
@@ -668,11 +728,10 @@ bool productoTieneTransaccionesBin(int idBuscado) {
     Transaccion t;
     bool encontrado = false;
 
-    // Recorremos todas las transacciones del disco
     while (fread(&t, sizeof(Transaccion), 1, f)) {
-        // Como una transacción puede tener varios productos (según tu struct)
-        for (int i = 0; i < t.numItems; i++) {
-            if (t.idProductos[i] == idBuscado) {
+        // Usamos los getters para no violar la privacidad
+        for (int i = 0; i < t.getNumItems(); i++) {
+            if (t.getIdProducto(i) == idBuscado) {
                 encontrado = true;
                 break;
             }
@@ -693,7 +752,7 @@ bool buscarProveedorPorIDBin(int idBuscado, Proveedor* resultado) {
 
     Proveedor p;
     while (fread(&p, sizeof(Proveedor), 1, f)) {
-        if (!p.eliminado && p.id == idBuscado) {
+        if (!p.isEliminado() && p.getId() == idBuscado) {
             *resultado = p;
             fclose(f);
             return true;
@@ -711,7 +770,7 @@ bool buscarProveedorPorRIFBin(const char* rifBuscado, Proveedor* resultado) {
     fseek(f, sizeof(ArchivoHeader), SEEK_SET); // Saltamos el header
     
     while (fread(&p, sizeof(Proveedor), 1, f)) {
-        if (!p.eliminado && strcmp(p.rif, rifBuscado) == 0) {
+        if (!p.isEliminado() && strcmp(p.getRif(), rifBuscado) == 0) {
             if (resultado) *resultado = p;
             fclose(f);
             return true;
@@ -723,11 +782,11 @@ bool buscarProveedorPorRIFBin(const char* rifBuscado, Proveedor* resultado) {
 
 void mostrarProveedor(const Proveedor& p) {
     cout << "\n=== PROVEEDOR ENCONTRADO ===\n";
-    cout << "ID: " << p.id << endl;
-    cout << "RIF: " << p.rif << endl;
-    cout << "Nombre: " << p.nombre << endl;
-    cout << "Email: " << p.email << endl;
-    cout << "TelÃ©fono: " << p.telefono << endl;
+    cout << "ID: " << p.getId() << endl;
+	cout << "RIF: " << p.getRif() << endl;
+	cout << "Nombre: " << p.getNombre() << endl;
+    cout << "Email: " << p.getEmail() << endl; 
+    cout << "Telefono: " << p.getTelefono() << endl;
 }
 
 
@@ -757,11 +816,11 @@ void encabezadoProveedores() {
     lineaProv("sep");
 }
 void filaProveedor(const Proveedor& p) {
-    cout << "Â¦ "
-         << setw(2)  << left << p.id << " Â¦ "
-         << setw(20) << left << p.nombre << " Â¦ "
-         << setw(16) << left << p.rif << " Â¦ "
-         << setw(25) << left << p.telefono << " Â¦\n";
+    cout << "¦ "
+         << setw(2)  << left << p.getId() << " ¦ "
+         << setw(20) << left << p.getNombre() << " ¦ "
+         << setw(16) << left << p.getRif() << " ¦ "
+         << setw(25) << left << p.getTelefono() << " ¦\n";
 }
 void pieProveedores() {
     lineaProv("bot");
@@ -780,7 +839,7 @@ void buscarYListarProveedoresPorNombreBin(const char* filtro) {
 
     encabezadoProveedores();
     while (fread(&p, sizeof(Proveedor), 1, f)) {
-        if (!p.eliminado && contiene(p.nombre, filtroMin)) {
+        if (!p.isEliminado() && contiene(p.getNombre(), filtroMin.c_str())) {
             filaProveedor(p);
             encontrado = true;
         }
@@ -799,7 +858,8 @@ bool buscarClientePorIDBin(int idBuscado, Cliente* resultado) {
 
     Cliente c;
     while (fread(&c, sizeof(Cliente), 1, f)) {
-        if (!c.eliminado && c.id == idBuscado) {
+        // CAMBIO: Usamos los getters
+        if (!c.isEliminado() && c.getId() == idBuscado) {
             if (resultado) *resultado = c;
             fclose(f);
             return true;
@@ -818,13 +878,13 @@ bool buscarClientePorCedulaBin(const char* cedulaBuscada, Cliente* resultado) {
     FILE* f = fopen("clientes.bin", "rb");
     if (!f) return false;
 
-    // Saltamos el header
     fseek(f, sizeof(ArchivoHeader), SEEK_SET);
 
     Cliente c;
     while (fread(&c, sizeof(Cliente), 1, f)) {
-        if (!c.eliminado && strcmp(c.cedula, cedulaBuscada) == 0) {
-            if (resultado) *resultado = c; // Copiamos los datos al puntero
+        // CAMBIO: Usamos getCedula() e isEliminado()
+        if (!c.isEliminado() && strcmp(c.getCedula(), cedulaBuscada) == 0) {
+            if (resultado) *resultado = c;
             fclose(f);
             return true;
         }
@@ -835,30 +895,21 @@ bool buscarClientePorCedulaBin(const char* cedulaBuscada, Cliente* resultado) {
 
 void obtenerNombreClienteBin(int idBuscado, char* destino) {
     strcpy(destino, "Desconocido");
-    FILE* f = fopen("clientes.bin", "rb");
-    if (!f) return;
-
-    ArchivoHeader h;
-    fread(&h, sizeof(ArchivoHeader), 1, f);
-
     Cliente c;
-    while (fread(&c, sizeof(Cliente), 1, f)) {
-        if (!c.eliminado && c.id == idBuscado) {
-            strcpy(destino, c.nombre);
-            break;
-        }
+    // Reutilizamos la función de búsqueda para evitar repetir el código de archivos
+    if (buscarClientePorIDBin(idBuscado, &c)) {
+        strcpy(destino, c.getNombre());
     }
-    fclose(f);
 }
 
 void mostrarCliente(const Cliente& c) {
     cout << "\n=== CLIENTE ENCONTRADO ===\n";
-    cout << "ID: " << c.id << endl;
-    cout << "CÃ©dula/RIF: " << c.cedula << endl;
-    cout << "Nombre: " << c.nombre << endl;
-    cout << "Email: " << c.email << endl;
-    cout << "TelÃ©fono: " << c.telefono << endl;
-    cout << "DirecciÃ³n: " << c.direccion << endl;
+    cout << "ID: " << c.getId() << endl;
+    cout << "Cedula/RIF: " << c.getCedula() << endl;
+    cout << "Nombre: " << c.getNombre() << endl;
+    cout << "Email: " << c.getEmail() << endl;
+    cout << "Telefono: " << c.getTelefono() << endl;
+    cout << "Direccion: " << c.getDireccion() << endl;
 }
 
 //==============
@@ -885,12 +936,12 @@ void encabezadoClientes() {
 }
 
 void filaCliente(const Cliente& c) {
-    cout << "Â¦ "
-         << setw(2)  << left << c.id << " Â¦ "
-         << setw(20) << left << c.nombre << " Â¦ "
-         << setw(16) << left << c.cedula << " Â¦ "
-         << setw(20) << left << c.telefono << " Â¦ "
-         << setw(20) << left << c.email << " Â¦\n";
+    cout << "¦ "
+         << setw(2)  << left << c.getId() << " ¦ "
+         << setw(20) << left << c.getNombre() << " ¦ "
+         << setw(16) << left << c.getCedula() << " ¦ "
+         << setw(20) << left << c.getTelefono() << " ¦ "
+         << setw(20) << left << c.getEmail() << " ¦\n";
 }
 
 void pieClientes() {
@@ -910,7 +961,8 @@ void buscarYListarClientesPorNombreBin(const char* filtro) {
 
     encabezadoClientes();
     while (fread(&c, sizeof(Cliente), 1, f)) {
-        if (!c.eliminado && contiene(c.nombre, filtroMin)) {
+        // Ajuste: isEliminado() y getNombre()
+        if (!c.isEliminado() && contiene(c.getNombre(), filtroMin.c_str())) {
             filaCliente(c);
             encontrado = true;
         }
@@ -930,7 +982,7 @@ bool clienteTieneVentasBin(int idCliente) {
 
     while (fread(&t, sizeof(Transaccion), 1, f)) {
         // Asumiendo que idRelacionado guarda el ID del cliente en tipos "VENTA"
-        if (t.idRelacionado == idCliente && strcmp(t.tipo, "VENTA") == 0) {
+        if (t.getIdRelacionado() == idCliente && strcmp(t.getTipo(), "VENTA") == 0) {
             fclose(f);
             return true;
         }
@@ -963,15 +1015,20 @@ void encabezadoTransacciones() {
 }
 
 void filaTransaccion(const Transaccion& t) {
-    cout << "Â¦ "
-         << setw(2)  << left << t.id << " Â¦ "
-         << setw(8)  << left << t.tipo << " Â¦ "
-         << setw(8)  << left << (t.numItems > 0 ? aString(t.idProductos[0]) : "N/A") << " ¦ "
-         << setw(22) << left << t.idRelacionado << " Â¦ "
-         << setw(8)  << left << t.cantidades << " Â¦ "
-         << setw(9)  << left << t.total << " Â¦ "
-         << setw(10) << left << t.fechaRegistro << " Â¦ "
-         << setw(15) << left << t.descripcion << " Â¦\n";
+    cout << "¦ "
+         << setw(2)  << left << t.getId() << " ¦ "
+         << setw(8)  << left << t.getTipo() << " ¦ ";
+    if (t.getNumItems() > 0) {
+        cout << setw(8) << left << t.getIdProducto(0) << " ¦ ";
+    } else {
+        cout << setw(8) << left << "N/A" << " ¦ ";
+    }
+
+    cout << setw(22) << left << t.getIdRelacionado() << " ¦ "
+         << setw(8)  << left << (t.getNumItems() > 0 ? t.getCantidad(0) : 0) << " ¦ " // Mostramos la primera cantidad
+         << setw(9)  << left << t.getTotal() << " ¦ "
+         << setw(10) << left << t.getFecha() << " ¦ "
+         << setw(15) << left << "Ver detalle" << " ¦\n"; // La descripción suele ser larga, mejor un resumen
 }
 
 void pieTransacciones() {
@@ -983,13 +1040,14 @@ void pieTransacciones() {
 //===============
 
 void inicializarTienda(Tienda* tienda, const char* nombre, const char* rif) {
-    strcpy(tienda->nombre, nombre);
-    strcpy(tienda->rif, rif);
+    tienda->setNombre(nombre);
+    tienda->setRif(rif);
     
-    tienda->totalVentasHistoricas = 0;
-    tienda->totalComprasHistoricas = 0;
-    tienda->cantidadOperaciones = 0;
+    tienda->setTotalVentas(0);
+    tienda->setTotalCompras(0);
+    tienda->setCantidadOperaciones(0);
 
+    // Inicialización de archivos usando la plantilla
     inicializarArchivo<Producto>("productos.bin");
     inicializarArchivo<Proveedor>("proveedores.bin");
     inicializarArchivo<Cliente>("clientes.bin");
@@ -1000,8 +1058,9 @@ void registrarProductoEnDisco(Producto nuevo) {
     const char* nombreArchivo = "productos.bin";
     ArchivoHeader header = leerHeader(nombreArchivo);
 
-    nuevo.id = header.proximoID;
-    nuevo.eliminado = false; 
+    // CAMBIO: Usar Setters
+    nuevo.setId(header.proximoID);
+    nuevo.setEliminado(false); 
 
     FILE* f = fopen(nombreArchivo, "ab");
     if (f) {
@@ -1019,9 +1078,12 @@ void registrarTransaccionEnDisco(Transaccion nueva) {
     const char* nombreArchivo = "transacciones.bin";
     ArchivoHeader header = leerHeader(nombreArchivo);
 
-    nueva.id = header.proximoID;
-    nueva.eliminado = false;
-    obtenerFechaActual(nueva.fechaRegistro);
+    nueva.setId(header.proximoID);
+    nueva.setEliminado(false);
+    
+    char fecha[20];
+    obtenerFechaActual(fecha);
+    nueva.setFecha(fecha); // CAMBIO: Usar Setter para la fecha
 
     FILE* f = fopen(nombreArchivo, "ab");
     if (f) {
@@ -1039,76 +1101,80 @@ void mostrarDetalleTransaccion(const Transaccion& t) {
     cout << "+-----------------------------------------------------------+\n";
     cout << "|            DETALLE DE TRANSACCION (DISCO)                 |\n";
     cout << "+-----------------------------------------------------------+\n";
-    cout << "| ID: " << setw(54) << left << t.id << "|\n";
-    cout << "| Tipo: " << setw(52) << left << t.tipo << "|\n";
-    cout << "| Items: " << setw(51) << left << t.numItems << "|\n";
+    cout << "| ID: " << setw(54) << left << t.getId() << "|\n";
+    cout << "| Tipo: " << setw(52) << left << t.getTipo() << "|\n";
+    cout << "| Items: " << setw(51) << left << t.getNumItems() << "|\n";
     
-    for(int i = 0; i < t.numItems; i++) {
+    for(int i = 0; i < t.getNumItems(); i++) {
         char nombreP[100];
-        obtenerNombreProductoBin(t.idProductos[i], nombreP);
+        // Accedemos al ID del producto mediante el getter por índice
+        obtenerNombreProductoBin(t.getIdProducto(i), nombreP);
         cout << "|  - " << setw(20) << left << nombreP 
-             << " Cant: " << setw(25) << left << t.cantidades[i] << "|\n";
+             << " Cant: " << setw(25) << left << t.getCantidad(i) << "|\n";
     }
 
-    cout << "| Total:    $" << setw(47) << left << fixed << setprecision(2) << t.total << "|\n";
-    cout << "| Fecha:    " << setw(48) << left << t.fechaRegistro << "|\n";
+    cout << "| Total:    $" << setw(47) << left << fixed << setprecision(2) << t.getTotal() << "|\n";
+    cout << "| Fecha:    " << setw(48) << left << t.getFecha() << "|\n";
     cout << "+-----------------------------------------------------------+\n";
 }
 
 
-void crearProducto() { // Ya no necesita recibir Tienda* si usas archivos
-    if (!confirmar("¿Desea registrar un nuevo producto? (S/N): "))
-        return;
+void crearProducto() {
+    if (!confirmar("¿Desea registrar un nuevo producto? (S/N): ")) return;
 
     Producto nuevo;
+    char tempStr[200]; // Buffer temporal
+    int tempInt;
+    float tempFloat;
 
     // --- Código ---
-    solicitarString("Ingrese código del producto (o CANCELAR): ", nuevo.codigo, 20, sinEspacios);
-    
-    if (strcmp(nuevo.codigo, "CANCELAR") == 0 || strcmp(nuevo.codigo, "0") == 0)
-        return;
+    solicitarString("Ingrese código del producto (o CANCELAR): ", tempStr, 20, sinEspacios);
+    if (strcmp(tempStr, "CANCELAR") == 0 || strcmp(tempStr, "0") == 0) return;
 
-    // IMPORTANTE: Ahora la validación busca en el archivo .bin
-    if (codigoProductoDuplicado(nuevo.codigo)) { 
-        cout << "ERROR: El código '" << nuevo.codigo << "' ya está registrado.\n";
+    if (codigoProductoDuplicado(tempStr)) { 
+        cout << "ERROR: El código '" << tempStr << "' ya está registrado.\n";
         return;
     }
+    nuevo.setCodigo(tempStr); // Usar Setter
 
     // --- Nombre y Descripción ---
-    solicitarString("Ingrese nombre del producto: ", nuevo.nombre, 100);
-    solicitarString("Ingrese descripción: ", nuevo.descripcion, 200);
+    solicitarString("Ingrese nombre: ", tempStr, 100);
+    nuevo.setNombre(tempStr);
+    
+    solicitarString("Ingrese descripción: ", tempStr, 200);
+    nuevo.setDescripcion(tempStr);
 
     // --- ID Proveedor ---
     cout << "Ingrese ID del proveedor (o 0 para cancelar): ";
-    cin >> nuevo.idProveedor;
-    cin.ignore(); // Limpiar el buffer tras usar cin >>
+    cin >> tempInt; cin.ignore();
+    if (tempInt == 0) return;
 
-    if (nuevo.idProveedor == 0) return;
-
-    // Validación contra el archivo de proveedores
-    if (!existeProveedorBin(nuevo.idProveedor)) {
-        cout << "ERROR: El proveedor con ID " << nuevo.idProveedor << " no existe.\n";
+    if (!existeProveedorBin(tempInt)) {
+        cout << "ERROR: El proveedor con ID " << tempInt << " no existe.\n";
         return;
     }
+    nuevo.setIdProveedor(tempInt);
 
     // --- Precio y Stock ---
-    cout << "Ingrese precio: "; cin >> nuevo.precio;
-    cout << "Ingrese stock: ";  cin >> nuevo.stock;
-    cin.ignore();
+    cout << "Ingrese precio: "; cin >> tempFloat;
+    nuevo.setPrecio(tempFloat);
+    
+    cout << "Ingrese stock: ";  cin >> tempInt; cin.ignore();
+    nuevo.setStock(tempInt);
 
     // --- Fecha y Borrado Lógico ---
-    obtenerFechaActual(nuevo.fechaRegistro);
-    nuevo.eliminado = false; 
+    char fecha[20];
+    obtenerFechaActual(fecha);
+    nuevo.setFechaRegistro(fecha);
+    nuevo.setEliminado(false); 
 
-    // --- Resumen ---
+    // --- Resumen y Guardado ---
     cout << "\n=== RESUMEN DEL PRODUCTO ===\n";
     mostrarProducto(nuevo);
 
     if (confirmar("¿Guardar producto en disco? (S/N): ")) {
         registrarProductoEnDisco(nuevo); 
         cout << "\nProducto guardado físicamente en productos.bin\n";
-    } else {
-        cout << "\nRegistro cancelado.\n";
     }
 }
 
@@ -1116,16 +1182,16 @@ void crearProducto() { // Ya no necesita recibir Tienda* si usas archivos
 //2.2.2
 //========================
 
-void buscarProducto() { // Ya no necesita recibir Tienda*
+void buscarProducto() { 
     int opcion;
     cout << "\n=== BUSCAR PRODUCTO EN DISCO ===\n";
     cout << "1. Buscar por ID\n";
     cout << "2. Buscar por nombre (parcial)\n";
-    cout << "3. Buscar por código (parcial)\n";
+    cout << "3. Buscar por codigo (parcial)\n";
     cout << "0. Cancelar\n";
-    cout << "Seleccione una opción: ";
+    cout << "Seleccione una opcion: ";
     cin >> opcion;
-    cin.ignore(); // Limpiar el buffer
+    cin.ignore(); 
 
     if (opcion == 0) return;
 
@@ -1135,7 +1201,6 @@ void buscarProducto() { // Ya no necesita recibir Tienda*
         return;
     }
 
-    // Leemos la cabecera para saber cuántos registros hay
     ArchivoHeader h;
     fread(&h, sizeof(ArchivoHeader), 1, f);
 
@@ -1143,14 +1208,14 @@ void buscarProducto() { // Ya no necesita recibir Tienda*
     bool encontrado = false;
 
     switch (opcion) {
-        // 1. Buscar por ID
-        case 1: {
+        case 1: { // Buscar por ID
             int idBuscado;
             cout << "Ingrese ID del producto: ";
             cin >> idBuscado;
 
             while (fread(&p, sizeof(Producto), 1, f)) {
-                if (!p.eliminado && p.id == idBuscado) {
+                // AJUSTE: Usar isEliminado() y getId()
+                if (!p.isEliminado() && p.getId() == idBuscado) {
                     cout << "\n=== PRODUCTO ENCONTRADO ===\n";
                     mostrarProducto(p);
                     encontrado = true;
@@ -1160,15 +1225,15 @@ void buscarProducto() { // Ya no necesita recibir Tienda*
             break;
         }
 
-        // 2. Buscar por nombre (parcial)
-        case 2: {
+        case 2: { // Buscar por nombre (parcial)
             char buffer[100];
             solicitarString("Ingrese parte del nombre: ", buffer, 100);
             string filtro = toLower(buffer);
 
             cout << "\n=== RESULTADOS POR NOMBRE ===\n";
             while (fread(&p, sizeof(Producto), 1, f)) {
-                if (!p.eliminado && contiene(p.nombre, filtro)) {
+                // AJUSTE: Usar getNombre() y pasar filtro.c_str() si contiene espera char*
+                if (!p.isEliminado() && contiene(p.getNombre(), filtro.c_str())) {
                     mostrarProducto(p);
                     cout << "-----------------------------\n";
                     encontrado = true;
@@ -1177,15 +1242,15 @@ void buscarProducto() { // Ya no necesita recibir Tienda*
             break;
         }
 
-        // 3. Buscar por código (parcial)
-        case 3: {
+        case 3: { // Buscar por codigo (parcial)
             char buffer[20];
-            solicitarString("Ingrese parte del código: ", buffer, 20);
+            solicitarString("Ingrese parte del codigo: ", buffer, 20);
             string filtro = toLower(buffer);
 
-            cout << "\n=== RESULTADOS POR CÓDIGO ===\n";
+            cout << "\n=== RESULTADOS POR CODIGO ===\n";
             while (fread(&p, sizeof(Producto), 1, f)) {
-                if (!p.eliminado && contiene(p.codigo, filtro)) {
+                // AJUSTE: Usar getCodigo()
+                if (!p.isEliminado() && contiene(p.getCodigo(), filtro.c_str())) {
                     mostrarProducto(p);
                     cout << "-----------------------------\n";
                     encontrado = true;
@@ -1195,7 +1260,7 @@ void buscarProducto() { // Ya no necesita recibir Tienda*
         }
 
         default:
-            cout << "Opción inválida.\n";
+            cout << "Opcion invalida.\n";
             break;
     }
 
@@ -1204,7 +1269,6 @@ void buscarProducto() { // Ya no necesita recibir Tienda*
 
     fclose(f);
 }
-
 
 //========================
 //2.2.3
@@ -1216,13 +1280,12 @@ void actualizarProducto() {
     cin >> idBuscado;
     cin.ignore();
 
-    FILE* f = fopen("productos.bin", "r+b"); // r+b permite lectura Y escritura
+    FILE* f = fopen("productos.bin", "r+b"); // r+b para leer y escribir
     if (!f) {
         cout << "ERROR: No se pudo abrir el archivo.\n";
         return;
     }
 
-    // Leemos el header
     ArchivoHeader h;
     fread(&h, sizeof(ArchivoHeader), 1, f);
 
@@ -1230,11 +1293,12 @@ void actualizarProducto() {
     long posicionRegistro = -1;
     bool encontrado = false;
 
-    // Buscamos el producto y guardamos su posición
+    // Busqueda y captura de posicion
     for (int i = 0; i < h.cantidadRegistros; i++) {
-        posicionRegistro = ftell(f); // Guardamos la posición actual antes de leer
+        posicionRegistro = ftell(f); 
         if (fread(&temp, sizeof(Producto), 1, f)) {
-            if (!temp.eliminado && temp.id == idBuscado) {
+            // AJUSTE: Usar isEliminado() y getId()
+            if (!temp.isEliminado() && temp.getId() == idBuscado) {
                 encontrado = true;
                 break;
             }
@@ -1248,37 +1312,53 @@ void actualizarProducto() {
     }
 
     int opcion;
+    char buffer[200]; // Buffer para strings
     do {
         cout << "\n=== EDITAR PRODUCTO (EN DISCO) ===\n";
-        cout << "1. Código: " << temp.codigo << endl;
-        cout << "2. Nombre: " << temp.nombre << endl;
-        cout << "3. Descripción: " << temp.descripcion << endl;
-        cout << "4. Precio: " << temp.precio << endl;
-        cout << "5. Stock: " << temp.stock << endl;
+        // AJUSTE: Usar Getters para mostrar
+        cout << "1. Codigo: " << temp.getCodigo() << endl;
+        cout << "2. Nombre: " << temp.getNombre() << endl;
+        cout << "3. Descripcion: " << temp.getDescripcion() << endl;
+        cout << "4. Precio: " << temp.getPrecio() << endl;
+        cout << "5. Stock: " << temp.getStock() << endl;
         cout << "6. Guardar cambios en archivo\n";
         cout << "0. Salir sin guardar\n";
-        cout << "Opción: ";
+        cout << "Opcion: ";
         cin >> opcion;
         cin.ignore();
 
         switch (opcion) {
             case 1: {
-                char nuevoCodigo[20];
-                solicitarString("Nuevo código: ", nuevoCodigo, 20, sinEspacios);
-                if (codigoProductoDuplicado(nuevoCodigo, temp.id)) {
-                    cout << "ERROR: Código ya existe.\n";
+                solicitarString("Nuevo codigo: ", buffer, 20, sinEspacios);
+                if (codigoProductoDuplicado(buffer, temp.getId())) {
+                    cout << "ERROR: Codigo ya existe.\n";
                 } else {
-                    strcpy(temp.codigo, nuevoCodigo);
+                    temp.setCodigo(buffer); // AJUSTE: Usar Setter
                 }
                 break;
             }
-            case 2: solicitarString("Nuevo nombre: ", temp.nombre, 100); break;
-            case 3: solicitarString("Nueva descripción: ", temp.descripcion, 200); break;
-            case 4: cout << "Nuevo precio: "; cin >> temp.precio; cin.ignore(); break;
-            case 5: cout << "Nuevo stock: "; cin >> temp.stock; cin.ignore(); break;
+            case 2: 
+                solicitarString("Nuevo nombre: ", buffer, 100);
+                temp.setNombre(buffer);
+                break;
+            case 3: 
+                solicitarString("Nueva descripcion: ", buffer, 200);
+                temp.setDescripcion(buffer);
+                break;
+            case 4: {
+                float nPrecio;
+                cout << "Nuevo precio: "; cin >> nPrecio; cin.ignore();
+                temp.setPrecio(nPrecio);
+                break;
+            }
+            case 5: {
+                int nStock;
+                cout << "Nuevo stock: "; cin >> nStock; cin.ignore();
+                temp.setStock(nStock);
+                break;
+            }
             case 6: {
                 if (confirmar("¿Sobrescribir datos en disco? (S/N): ")) {
-                    // LA MAGIA: Volvemos a la posición donde estaba el producto
                     fseek(f, posicionRegistro, SEEK_SET); 
                     fwrite(&temp, sizeof(Producto), 1, f);
                     cout << "Archivo actualizado exitosamente.\n";
@@ -1307,11 +1387,25 @@ bool actualizarStockProducto(int idProd, int cambioCantidad) {
     bool exito = false;
 
     while (fread(&p, sizeof(Producto), 1, f)) {
-        pos = ftell(f) - sizeof(Producto); // Ubicación exacta del registro
-        if (p.id == idProd && !p.eliminado) {
-            p.stock += cambioCantidad; // Modificamos el stock en la variable
-            fseek(f, pos, SEEK_SET);   // Volvemos a la posición
-            fwrite(&p, sizeof(Producto), 1, f); // Sobreescribimos
+        // Calculamos la posición donde empieza este registro
+        pos = ftell(f) - sizeof(Producto); 
+        
+        // AJUSTE: Usar getId() e isEliminado()
+        if (p.getId() == idProd && !p.isEliminado()) {
+            
+            // AJUSTE: Usar getStock() y setStock() para modificar
+            int nuevoStock = p.getStock() + cambioCantidad;
+            
+            // Validación de seguridad: no permitir stock negativo
+            if (nuevoStock < 0) {
+                fclose(f);
+                return false; 
+            }
+            
+            p.setStock(nuevoStock);
+            
+            fseek(f, pos, SEEK_SET);   // Volvemos al inicio del registro
+            fwrite(&p, sizeof(Producto), 1, f); // Sobreescribimos solo este producto
             exito = true;
             break;
         }
@@ -1327,42 +1421,27 @@ bool actualizarStockProducto(int idProd, int cambioCantidad) {
 void listarProductos() {
     FILE* f = fopen("productos.bin", "rb");
     if (!f) {
-        cout << "No hay productos registrados o el archivo no existe.\n";
+        cout << "No hay productos registrados.\n";
         return;
     }
 
-    // Leemos el Header para las estadísticas del pie de tabla
     ArchivoHeader h;
     fread(&h, sizeof(ArchivoHeader), 1, f);
-
-    if (h.cantidadRegistros == 0) {
-        cout << "El archivo está vacío.\n";
-        fclose(f);
-        return;
-    }
 
     encabezadoProductos();
 
     Producto p;
-    int mostrados = 0;
+    char nombreProv[20];
 
-    // Recorremos el archivo registro por registro
     while (fread(&p, sizeof(Producto), 1, f)) {
-        if (!p.eliminado) {
-            char nombreProv[100];
-            obtenerNombreProveedorBin(p.idProveedor, nombreProv); 
-            
+        if (!p.isEliminado()) {
+            // Buscamos el nombre del proveedor en su propio archivo binario
+            obtenerNombreProveedorBin(p.getIdProveedor(), nombreProv);
             filaProducto(p, nombreProv);
-            mostrados++;
         }
     }
 
     pieProductos();
-
-    // Estadísticas basadas en el Header y el conteo real
-    cout << "\nTotal registros en archivo: " << h.cantidadRegistros;
-    cout << "\nProductos activos listados: " << mostrados << "\n";
-
     fclose(f);
 }
 
@@ -1377,9 +1456,7 @@ void eliminarProducto() {
     cin >> idBuscado;
     cin.ignore();
 
-    // 1. Buscamos el producto y obtenemos sus datos (y su posición)
     Producto p;
-    // IMPORTANTE: Necesitamos saber en qué byte está el producto para sobreescribirlo
     long posicionRegistro = -1; 
     
     FILE* f = fopen("productos.bin", "r+b");
@@ -1392,11 +1469,11 @@ void eliminarProducto() {
     fread(&h, sizeof(ArchivoHeader), 1, f);
 
     bool encontrado = false;
-    // Buscamos el registro y guardamos su posición exacta en bytes
     for (int i = 0; i < h.cantidadRegistros; i++) {
-        posicionRegistro = ftell(f); // Guardamos DONDE empieza este registro
+        posicionRegistro = ftell(f); 
         if (fread(&p, sizeof(Producto), 1, f)) {
-            if (!p.eliminado && p.id == idBuscado) {
+            // AJUSTE: Usar isEliminado() y getId()
+            if (!p.isEliminado() && p.getId() == idBuscado) {
                 encontrado = true;
                 break;
             }
@@ -1409,11 +1486,9 @@ void eliminarProducto() {
         return;
     }
 
-    // 2. Mostrar datos antes de borrar
     cout << "\n=== PRODUCTO A ELIMINAR ===\n";
     mostrarProducto(p);
 
-    // 3. Verificación de integridad (Opcional pero recomendado)
     if (productoTieneTransaccionesBin(idBuscado)) {
         cout << "\nADVERTENCIA: Este producto tiene movimientos en el inventario.\n";
     }
@@ -1424,15 +1499,14 @@ void eliminarProducto() {
         return;
     }
 
-    // 4. EL BORRADO LÓGICO
-    p.eliminado = true;
+    // AJUSTE: El borrado lógico ahora usa el Setter
+    p.setEliminado(true);
 
-    // 5. SOBREESCRITURA: Saltamos a la posición que guardamos antes
     fseek(f, posicionRegistro, SEEK_SET);
     fwrite(&p, sizeof(Producto), 1, f);
     fclose(f);
 
-    // 6. ACTUALIZAR HEADER
+    // Actualizar el conteo de registros activos en la cabecera
     h = leerHeader("productos.bin");
     h.registrosActivos--;
     actualizarHeader("productos.bin", h);
@@ -1468,12 +1542,18 @@ void menuProductos() {
             case 2: buscarProducto(); break;          // Llama directo al disco
             case 3: actualizarProducto(); break;      // Llama directo al disco
             case 4: {
-                int id, cant;
-                cout << "ID Producto: "; cin >> id;
-                cout << "Cantidad a sumar/restar: "; cin >> cant;
-                actualizarStockProducto(id, cant); 
-                break;
-            }
+    			int id, cant;
+   					 cout << "=== AJUSTE MANUAL DE STOCK ===\n";
+   					 cout << "ID Producto: "; cin >> id;
+   					 cout << "Cantidad a sumar (positivo) o restar (negativo): "; cin >> cant;
+    
+   					 if (actualizarStockProducto(id, cant)) {
+    				    cout << "\n[OK] Stock actualizado correctamente en disco.\n";
+    					} else {
+     					   cout << "\n[ERROR] No se pudo encontrar el producto o el stock resultaria negativo.\n";
+   						}
+    		break;
+			}
             case 5: listarProductos(); break;         // Llama directo al disco
             case 6: eliminarProducto(); break;        // Llama directo al disco
             case 0: break;
@@ -1494,62 +1574,68 @@ void registrarProveedorEnDisco(Proveedor nuevo) {
     const char* nombreArchivo = "proveedores.bin";
     ArchivoHeader header = leerHeader(nombreArchivo);
 
-    nuevo.id = header.proximoID; // Asignación de ID automática desde el disco
+    // AJUSTE: Usar Setter para el ID
+    nuevo.setId(header.proximoID); 
 
     FILE* f = fopen(nombreArchivo, "ab");
     if (f) {
         fwrite(&nuevo, sizeof(Proveedor), 1, f);
         fclose(f);
 
-        // Actualizamos las cuentas en el Header
         header.cantidadRegistros++;
         header.proximoID++;
         header.registrosActivos++;
         actualizarHeader(nombreArchivo, header);
     }
 }
+
 void crearProveedor() {
     if (!confirmar("¿Desea registrar un nuevo proveedor? (S/N): "))
         return;
 
     Proveedor nuevo;
+    char buffer[100]; // Buffer temporal para los strings
 
     // --- RIF ---
-    solicitarString("Ingrese RIF del proveedor (o CANCELAR): ", nuevo.rif, 20);
+    solicitarString("Ingrese RIF del proveedor (o CANCELAR): ", buffer, 20);
 
-    if (strcmp(nuevo.rif, "CANCELAR") == 0 || strcmp(nuevo.rif, "0") == 0)
+    if (strcmp(buffer, "CANCELAR") == 0 || strcmp(buffer, "0") == 0)
         return;
 
-    // IMPORTANTE: Ahora la validación busca en proveedores.bin
-    if (rifDuplicado(nuevo.rif)) {
-        cout << "ERROR: El RIF '" << nuevo.rif << "' ya esta registrado.\n";
+    if (rifDuplicado(buffer)) {
+        cout << "ERROR: El RIF '" << buffer << "' ya esta registrado.\n";
         return;
     }
+    nuevo.setRif(buffer); // AJUSTE: Usar Setter
 
     // --- Nombre, Email y Telefono ---
-    solicitarString("Ingrese nombre: ", nuevo.nombre, 100);
-    solicitarString("Ingrese email: ", nuevo.email, 100, emailValido);
-    solicitarString("Ingrese telefono: ", nuevo.telefono, 20);
+    solicitarString("Ingrese nombre: ", buffer, 100);
+    nuevo.setNombre(buffer);
+
+    solicitarString("Ingrese email: ", buffer, 100, emailValido);
+    nuevo.setEmail(buffer);
+
+    solicitarString("Ingrese telefono: ", buffer, 20);
+    nuevo.setTelefono(buffer);
 
     // --- Campos de control ---
-    nuevo.eliminado = false; 
+    nuevo.setEliminado(false); 
 
     // --- Resumen ---
     cout << "\n=== RESUMEN DEL PROVEEDOR ===\n";
-    cout << "RIF: " << nuevo.rif << endl;
-    cout << "Nombre: " << nuevo.nombre << endl;
-    cout << "Email: " << nuevo.email << endl;
-    cout << "Telefono: " << nuevo.telefono << endl;
+    // Usamos Getters para mostrar el resumen
+    cout << "RIF: " << nuevo.getRif() << endl;
+    cout << "Nombre: " << nuevo.getNombre() << endl;
+    cout << "Email: " << nuevo.getEmail() << endl;
+    cout << "Telefono: " << nuevo.getTelefono() << endl;
 
     if (confirmar("¿Guardar proveedor en disco? (S/N): ")) {
-        // Llamamos a la utilidad genérica de guardado
         registrarProveedorEnDisco(nuevo); 
         cout << "Proveedor registrado exitosamente en proveedores.bin\n";
     } else {
         cout << "Operacion cancelada.\n";
     }
 }
-
 
 //2.3.2
 
@@ -1622,7 +1708,6 @@ void actualizarProveedor() {
 
     if (idBuscado == 0) return;
 
-    // Abrimos en modo r+b (lectura y escritura sin borrar el archivo)
     FILE* f = fopen("proveedores.bin", "r+b");
     if (!f) {
         cout << "ERROR: No se pudo abrir el archivo de proveedores.\n";
@@ -1636,11 +1721,11 @@ void actualizarProveedor() {
     long posicionRegistro = -1;
     bool encontrado = false;
 
-    // 1. Buscamos el proveedor y guardamos su posición en bytes
     for (int i = 0; i < h.cantidadRegistros; i++) {
-        posicionRegistro = ftell(f); // Guardamos donde empieza este registro
+        posicionRegistro = ftell(f); 
         if (fread(&temp, sizeof(Proveedor), 1, f)) {
-            if (!temp.eliminado && temp.id == idBuscado) {
+            // AJUSTE: Usar isEliminado() y getId()
+            if (!temp.isEliminado() && temp.getId() == idBuscado) {
                 encontrado = true;
                 break;
             }
@@ -1653,7 +1738,6 @@ void actualizarProveedor() {
         return;
     }
 
-    // Guardamos una copia de respaldo para comparar cambios
     Proveedor original = temp;
 
     cout << "\n=== PROVEEDOR ENCONTRADO ===\n";
@@ -1664,47 +1748,44 @@ void actualizarProveedor() {
         return;
     }
 
-    // --- Edición de campos (Lógica de "Enter para mantener") ---
     char buffer[200];
 
-    cout << "\nNombre actual: " << original.nombre << endl;
+    // --- Edición de campos ---
+    cout << "\nNombre actual: " << original.getNombre() << endl;
     solicitarString("Nuevo nombre (ENTER para mantener): ", buffer, 100);
-    if (strlen(buffer) > 0) strcpy(temp.nombre, buffer);
+    if (strlen(buffer) > 0) temp.setNombre(buffer);
 
-    cout << "\nRIF actual: " << original.rif << endl;
+    cout << "\nRIF actual: " << original.getRif() << endl;
     solicitarString("Nuevo RIF (ENTER para mantener): ", buffer, 20);
     if (strlen(buffer) > 0) {
-        if (rifDuplicado(buffer, original.id)) {
+        if (rifDuplicado(buffer, original.getId())) {
             cout << "ERROR: El RIF ya existe en otro proveedor.\n";
             fclose(f); return;
         }
-        strcpy(temp.rif, buffer);
+        temp.setRif(buffer);
     }
 
-    cout << "\nTelefono actual: " << original.telefono << endl;
+    cout << "\nTelefono actual: " << original.getTelefono() << endl;
     solicitarString("Nuevo telefono (ENTER para mantener): ", buffer, 20);
-    if (strlen(buffer) > 0) strcpy(temp.telefono, buffer);
+    if (strlen(buffer) > 0) temp.setTelefono(buffer);
 
-    cout << "\nEmail actual: " << original.email << endl;
+    cout << "\nEmail actual: " << original.getEmail() << endl;
     solicitarString("Nuevo email (ENTER para mantener): ", buffer, 100);
     if (strlen(buffer) > 0) {
         if (!emailValido(buffer)) {
             cout << "ERROR: Email invalido.\n";
             fclose(f); return;
         }
-        strcpy(temp.email, buffer);
+        temp.setEmail(buffer);
     }
 
-    // --- Guardado Final ---
     cout << "\n=== NUEVOS DATOS DEL PROVEEDOR ===\n";
     mostrarProveedor(temp);
 
     if (confirmar("¿Guardar cambios en disco? (S/N): ")) {
-        // 2. Movemos el cabezal de escritura a la posición guardada
         fseek(f, posicionRegistro, SEEK_SET); 
-        // 3. Sobreescribimos solo ese bloque de datos
         fwrite(&temp, sizeof(Proveedor), 1, f);
-        cout << "Proveedor actualizado exitosamente en el archivo.\n";
+        cout << "Proveedor actualizado exitosamente.\n";
     }
 
     fclose(f);
@@ -1719,7 +1800,6 @@ void listarProveedores() {
         return;
     }
 
-    // Leemos el Header para saber la salud del archivo
     ArchivoHeader h;
     fread(&h, sizeof(ArchivoHeader), 1, f);
 
@@ -1729,25 +1809,23 @@ void listarProveedores() {
         return;
     }
 
-    encabezadoProveedores(); // Tu función de formato de tabla
+    encabezadoProveedores(); 
 
     Proveedor p;
     int mostrados = 0;
 
-    // Recorrido Secuencial del archivo
     while (fread(&p, sizeof(Proveedor), 1, f)) {
-        // REGLA DE ORO: Solo listar los que no están eliminados
-        if (!p.eliminado) {
-            filaProveedor(p); // Tu función que imprime la línea de la tabla
+        // AJUSTE: Usar el getter isEliminado()
+        if (!p.isEliminado()) {
+            filaProveedor(p); 
             mostrados++;
         }
     }
 
-    pieProveedores(); // Cierre de la tabla
+    pieProveedores();
 
-    // Información útil para el usuario
-    cout << "\nTotal registros (incluyendo eliminados): " << h.cantidadRegistros;
-    cout << "\nProveedores activos actualmente: " << mostrados << "\n";
+    cout << "\nTotal registros en disco: " << h.cantidadRegistros;
+    cout << "\nProveedores activos: " << mostrados << "\n";
 
     fclose(f);
 }
@@ -1759,11 +1837,12 @@ bool proveedorTieneProductosBin(int idProv) {
     if (!f) return false;
 
     Producto p;
+    // Saltamos el header de productos
     fseek(f, sizeof(ArchivoHeader), SEEK_SET);
 
     while (fread(&p, sizeof(Producto), 1, f)) {
-        // Si el producto no esta borrado y pertenece al proveedor
-        if (!p.eliminado && p.idProveedor == idProv) {
+        // AJUSTE: Usar isEliminado() e getIdProveedor()
+        if (!p.isEliminado() && p.getIdProveedor() == idProv) {
             fclose(f);
             return true; 
         }
@@ -1781,8 +1860,6 @@ void eliminarProveedor() {
 
     if (idBuscado == 0) return;
 
-    // 1. Buscamos la posicion del proveedor en el archivo
-    // Usamos una funcion que nos devuelva la posicion exacta en bytes
     long posicionReg = -1;
     Proveedor p;
     
@@ -1796,7 +1873,8 @@ void eliminarProveedor() {
     for (int i = 0; i < h.cantidadRegistros; i++) {
         posicionReg = ftell(f);
         if (fread(&p, sizeof(Proveedor), 1, f)) {
-            if (!p.eliminado && p.id == idBuscado) {
+            // AJUSTE: Usar isEliminado() e getId()
+            if (!p.isEliminado() && p.getId() == idBuscado) {
                 encontrado = true;
                 break;
             }
@@ -1809,9 +1887,10 @@ void eliminarProveedor() {
         return;
     }
 
-    // 2. VERIFICACIÓN CRÍTICA: Buscar en el archivo de productos
+    // 2. VERIFICACIÓN CRÍTICA
     if (proveedorTieneProductosBin(idBuscado)) {
-        cout << "\nERROR: No se puede eliminar el proveedor '" << p.nombre << "'.\n";
+        // AJUSTE: Usar getNombre()
+        cout << "\nERROR: No se puede eliminar el proveedor '" << p.getNombre() << "'.\n";
         cout << "Tiene productos vinculados en productos.bin.\n";
         fclose(f);
         return;
@@ -1826,8 +1905,8 @@ void eliminarProveedor() {
         return;
     }
 
-    // 3. EJECUTAR BORRADO LÓGICO
-    p.eliminado = true;
+    // 3. EJECUTAR BORRADO LÓGICO (AJUSTE: Usar Setter)
+    p.setEliminado(true);
     fseek(f, posicionReg, SEEK_SET);
     fwrite(&p, sizeof(Proveedor), 1, f);
     fclose(f);
@@ -1888,15 +1967,15 @@ void registrarClienteEnDisco(Cliente nuevo) {
     const char* ruta = "clientes.bin";
     ArchivoHeader header = leerHeader(ruta);
 
-    // Asignamos el ID correlativo que lleva el Header
-    nuevo.id = header.proximoID; 
+    // AJUSTE: Usar el setter setId para asignar el ID correlativo
+    nuevo.setId(header.proximoID); 
 
     FILE* f = fopen(ruta, "ab"); // Append Binary
     if (f) {
         fwrite(&nuevo, sizeof(Cliente), 1, f);
         fclose(f);
 
-        // Actualizamos los contadores del Header
+        // Actualizamos los contadores del Header en el archivo
         header.cantidadRegistros++;
         header.proximoID++;
         header.registrosActivos++;
@@ -1909,40 +1988,51 @@ void crearCliente() {
         return;
 
     Cliente nuevo;
+    char buffer[200]; // Buffer temporal para capturar los datos
 
     // --- Cedula / RIF ---
-    solicitarString("Ingrese cedula/RIF del cliente (o CANCELAR): ", nuevo.cedula, 20);
+    solicitarString("Ingrese cedula/RIF del cliente (o CANCELAR): ", buffer, 20);
 
-    if (strcmp(nuevo.cedula, "CANCELAR") == 0 || strcmp(nuevo.cedula, "0") == 0)
+    if (strcmp(buffer, "CANCELAR") == 0 || strcmp(buffer, "0") == 0)
         return;
 
     // Validación contra el archivo clientes.bin
-    if (clienteDuplicado(nuevo.cedula)) {
-        cout << "ERROR: La cedula/RIF '" << nuevo.cedula << "' ya esta registrada.\n";
+    if (clienteDuplicado(buffer)) {
+        cout << "ERROR: La cedula/RIF '" << buffer << "' ya esta registrada.\n";
         return;
     }
+    nuevo.setCedula(buffer); // AJUSTE: Usar setter
 
     // --- Nombre, Email, Telefono y Direccion ---
-    solicitarString("Ingrese nombre del cliente: ", nuevo.nombre, 100);
-    solicitarString("Ingrese email: ", nuevo.email, 100, emailValido);
-    solicitarString("Ingrese telefono: ", nuevo.telefono, 20);
-    solicitarString("Ingrese direccion: ", nuevo.direccion, 200);
+    solicitarString("Ingrese nombre del cliente: ", buffer, 100);
+    nuevo.setNombre(buffer);
+
+    solicitarString("Ingrese email: ", buffer, 100, emailValido);
+    nuevo.setEmail(buffer);
+
+    solicitarString("Ingrese telefono: ", buffer, 20);
+    nuevo.setTelefono(buffer);
+
+    solicitarString("Ingrese direccion: ", buffer, 200);
+    nuevo.setDireccion(buffer);
 
     // --- Metadatos y Borrado Lógico ---
-    obtenerFechaActual(nuevo.fechaRegistro);
-    nuevo.eliminado = false; 
+    char fecha[11];
+    obtenerFechaActual(fecha);
+    // Asumiendo que tienes un setFechaRegistro o similar, si no, puedes agregarlo
+    // nuevo.setFechaRegistro(fecha); 
+    nuevo.setEliminado(false); 
 
     // --- Resumen ---
     cout << "\n=== RESUMEN DEL CLIENTE ===\n";
     cout << "ID: (Se asignara al guardar)\n";
-    cout << "Cedula/RIF: " << nuevo.cedula << endl;
-    cout << "Nombre: " << nuevo.nombre << endl;
-    cout << "Email: " << nuevo.email << endl;
-    cout << "Telefono: " << nuevo.telefono << endl;
-    cout << "Direccion: " << nuevo.direccion << endl;
+    cout << "Cedula/RIF: " << nuevo.getCedula() << endl; // AJUSTE: Usar getter
+    cout << "Nombre: " << nuevo.getNombre() << endl;
+    cout << "Email: " << nuevo.getEmail() << endl;
+    cout << "Telefono: " << nuevo.getTelefono() << endl;
+    cout << "Direccion: " << nuevo.getDireccion() << endl;
 
     if (confirmar("¿Guardar cliente en disco? (S/N): ")) {
-        // Esta función maneja el ID y el Header automáticamente
         registrarClienteEnDisco(nuevo); 
         cout << "\nCliente registrado exitosamente en clientes.bin.\n";
     } else {
@@ -2019,13 +2109,12 @@ void actualizarCliente() {
 
     if (idBuscado == 0) return;
 
-    FILE* f = fopen("clientes.bin", "r+b"); // r+b para leer y escribir
+    FILE* f = fopen("clientes.bin", "r+b"); 
     if (!f) {
         cout << "ERROR: El archivo de clientes no existe.\n";
         return;
     }
 
-    // Leemos el Header para saber el límite de búsqueda
     ArchivoHeader h;
     fread(&h, sizeof(ArchivoHeader), 1, f);
 
@@ -2033,11 +2122,11 @@ void actualizarCliente() {
     long posicionRegistro = -1;
     bool encontrado = false;
 
-    // 1. Buscamos el registro y marcamos su posición
     for (int i = 0; i < h.cantidadRegistros; i++) {
-        posicionRegistro = ftell(f); // Guardamos la ubicación actual en bytes
+        posicionRegistro = ftell(f); 
         if (fread(&temp, sizeof(Cliente), 1, f)) {
-            if (!temp.eliminado && temp.id == idBuscado) {
+            // AJUSTE: Usar isEliminado() e getId()
+            if (!temp.isEliminado() && temp.getId() == idBuscado) {
                 encontrado = true;
                 break;
             }
@@ -2050,7 +2139,6 @@ void actualizarCliente() {
         return;
     }
 
-    // Guardamos una copia para comparar o restaurar
     Cliente original = temp;
 
     cout << "\n=== CLIENTE ENCONTRADO ===\n";
@@ -2064,49 +2152,46 @@ void actualizarCliente() {
     char buffer[200];
 
     // --- Nombre ---
-    cout << "\nNombre actual: " << original.nombre << endl;
+    cout << "\nNombre actual: " << original.getNombre() << endl;
     solicitarString("Nuevo nombre (ENTER para mantener): ", buffer, 100);
-    if (strlen(buffer) > 0) strcpy(temp.nombre, buffer);
+    if (strlen(buffer) > 0) temp.setNombre(buffer);
 
     // --- Cedula/RIF ---
-    cout << "\nCedula/RIF actual: " << original.cedula << endl;
+    cout << "\nCedula/RIF actual: " << original.getCedula() << endl;
     solicitarString("Nueva cedula/RIF (ENTER para mantener): ", buffer, 20);
     if (strlen(buffer) > 0) {
-        // Validamos duplicado en el archivo, ignorando el ID actual
-        if (clienteDuplicado(buffer, original.id)) {
+        if (clienteDuplicado(buffer, original.getId())) {
             cout << "ERROR: La cedula '" << buffer << "' ya pertenece a otro cliente.\n";
             fclose(f); return;
         }
-        strcpy(temp.cedula, buffer);
+        temp.setCedula(buffer);
     }
 
     // --- Telefono ---
-    cout << "\nTelefono actual: " << original.telefono << endl;
+    cout << "\nTelefono actual: " << original.getTelefono() << endl;
     solicitarString("Nuevo telefono (ENTER para mantener): ", buffer, 20);
-    if (strlen(buffer) > 0) strcpy(temp.telefono, buffer);
+    if (strlen(buffer) > 0) temp.setTelefono(buffer);
 
     // --- Email ---
-    cout << "\nEmail actual: " << original.email << endl;
+    cout << "\nEmail actual: " << original.getEmail() << endl;
     solicitarString("Nuevo email (ENTER para mantener): ", buffer, 100);
     if (strlen(buffer) > 0) {
         if (!emailValido(buffer)) {
             cout << "ERROR: Formato de email invalido.\n";
             fclose(f); return;
         }
-        strcpy(temp.email, buffer);
+        temp.setEmail(buffer);
     }
 
     // --- Direccion ---
-    cout << "\nDireccion actual: " << original.direccion << endl;
+    cout << "\nDireccion actual: " << original.getDireccion() << endl;
     solicitarString("Nueva direccion (ENTER para mantener): ", buffer, 200);
-    if (strlen(buffer) > 0) strcpy(temp.direccion, buffer);
+    if (strlen(buffer) > 0) temp.setDireccion(buffer);
 
-    // --- Confirmación y Guardado ---
     cout << "\n=== NUEVOS DATOS DEL CLIENTE ===\n";
     mostrarCliente(temp);
 
     if (confirmar("¿Guardar cambios en el archivo? (S/N): ")) {
-        // LA CLAVE: Volvemos a donde estaba el registro original
         fseek(f, posicionRegistro, SEEK_SET); 
         fwrite(&temp, sizeof(Cliente), 1, f);
         cout << "Cliente actualizado exitosamente en el disco.\n";
@@ -2134,16 +2219,16 @@ void listarClientes() {
         return;
     }
 
-    encabezadoClientes(); // Tu función de formato
+    encabezadoClientes(); 
 
     Cliente c;
     int contadorActivos = 0;
 
     // Recorrido secuencial del archivo binario
     while (fread(&c, sizeof(Cliente), 1, f)) {
-        // Solo mostramos si el flag de borrado es falso
-        if (!c.eliminado) {
-            filaCliente(c); // Tu función que imprime la línea de la tabla
+        // AJUSTE: Usar el getter isEliminado()
+        if (!c.isEliminado()) {
+            filaCliente(c); 
             contadorActivos++;
         }
     }
@@ -2167,7 +2252,6 @@ void eliminarCliente() {
 
     if (idBuscado == 0) return;
 
-    // 1. Abrimos el archivo en modo r+b para poder sobreescribir el flag
     FILE* f = fopen("clientes.bin", "r+b");
     if (!f) {
         cout << "ERROR: No se pudo abrir el archivo de clientes.\n";
@@ -2181,11 +2265,11 @@ void eliminarCliente() {
     long posicionReg = -1;
     bool encontrado = false;
 
-    // 2. Buscamos la posición exacta del cliente en el archivo
     for (int i = 0; i < h.cantidadRegistros; i++) {
-        posicionReg = ftell(f); // Guardamos la ubicación actual antes de leer
+        posicionReg = ftell(f); 
         if (fread(&c, sizeof(Cliente), 1, f)) {
-            if (!c.eliminado && c.id == idBuscado) {
+            // AJUSTE: Usar isEliminado() e getId()
+            if (!c.isEliminado() && c.getId() == idBuscado) {
                 encontrado = true;
                 break;
             }
@@ -2198,9 +2282,9 @@ void eliminarCliente() {
         return;
     }
 
-    // 3. Verificación de Transacciones en Disco (Integridad Referencial)
     if (clienteTieneVentasBin(idBuscado)) {
-        cout << "\nERROR: No se puede eliminar a " << c.nombre << ".\n";
+        // AJUSTE: Usar getNombre()
+        cout << "\nERROR: No se puede eliminar a " << c.getNombre() << ".\n";
         cout << "Existen ventas registradas a su nombre en transacciones.bin.\n";
         fclose(f);
         return;
@@ -2215,13 +2299,12 @@ void eliminarCliente() {
         return;
     }
 
-    // 4. Marcamos como eliminado y sobreescribimos
-    c.eliminado = true;
-    fseek(f, posicionReg, SEEK_SET); // Saltamos directo al registro
+    // AJUSTE: Usar setter setEliminado()
+    c.setEliminado(true);
+    fseek(f, posicionReg, SEEK_SET); 
     fwrite(&c, sizeof(Cliente), 1, f);
     fclose(f);
 
-    // 5. Actualizamos el Header (Bajamos los registros activos)
     h = leerHeader("clientes.bin");
     h.registrosActivos--;
     actualizarHeader("clientes.bin", h);
@@ -2273,7 +2356,7 @@ void menuClientes() {
 // 2.5
 //==============
 
-void registrarCompra() { // Sin Tienda*
+void registrarCompra() { 
     cout << "\n=== REGISTRAR COMPRA (DISCO) ===\n";
 
     // 1. Validar Producto
@@ -2282,13 +2365,12 @@ void registrarCompra() { // Sin Tienda*
     cin >> idProd; cin.ignore();
     if (idProd == 0) return;
 
-    Producto prod; // Creamos una variable local para recibir los datos
-	if (buscarProductoPorID(idProd, &prod)) { // Solo pasamos ID y la dirección de la variable
-    // Si entra aquí, 'prod' ya tiene los datos cargados desde el archivo
-    cout << "Producto encontrado: " << prod.nombre << endl;
-	} else {
-    cout << "Error: Producto no existe en el archivo." << endl;
-	}
+    Producto prod; 
+    if (!buscarProductoPorID(idProd, &prod)) { // Asegúrate de que se llame igual a tu función de búsqueda
+        cout << "Error: Producto no existe en el archivo." << endl;
+        return;
+    }
+    cout << "Producto encontrado: " << prod.getNombre() << endl;
 
     // 2. Validar Proveedor
     int idProv;
@@ -2297,10 +2379,11 @@ void registrarCompra() { // Sin Tienda*
     if (idProv == 0) return;
 
     Proveedor prov;
-    if (!buscarProveedorPorIDBin(idProv, &prov)) { // Función que ya hicimos
+    if (!buscarProveedorPorIDBin(idProv, &prov)) {
         cout << "ERROR: El proveedor no existe o esta eliminado.\n";
         return;
     }
+    cout << "Proveedor encontrado: " << prov.getNombre() << endl;
 
     // 3. Captura de Datos
     int cantidad = solicitarEnteroPositivo("Cantidad comprada (>0): ");
@@ -2314,43 +2397,42 @@ void registrarCompra() { // Sin Tienda*
 
     float total = cantidad * precioUnit;
 
-    // 4. Resumen
+    // 4. Resumen (Usando Getters)
     cout << "\n=== RESUMEN DE COMPRA ===\n";
-    cout << "Producto:  " << prod.nombre << " (Stock actual: " << prod.stock << ")\n";
-    cout << "Proveedor: " << prov.nombre << "\n";
+    cout << "Producto:  " << prod.getNombre() << " (Stock actual: " << prod.getStock() << ")\n";
+    cout << "Proveedor: " << prov.getNombre() << "\n";
     cout << "Cantidad:  " << cantidad << "\n";
-    cout << "Total:     " << total << "\n";
+    cout << "Total:      " << total << "\n";
 
     if (!confirmar("¿Confirmar ingreso a almacen? (S/N): ")) return;
 
-    // 5. OPERACIONES EN DISCO (Punto crítico)
-    
-    // A. Actualizar Stock en productos.bin
-    if (actualizarStockProducto(idProd, cantidad)) { // Suma la cantidad al stock
+    // 5. OPERACIONES EN DISCO
+	if (actualizarStockProducto(idProd, cantidad)) { 
         
-        // B. Crear el registro de la Transacción
         Transaccion t;
-        t.id = idProd;
-        t.idRelacionado = idProv; // ID del Proveedor
-        t.cantidades[20] = cantidad;
-        t.precioUnitario[20] = precioUnit;
-        t.total = total;
-        strcpy(t.tipo, "COMPRA");
-        strcpy(t.descripcion, "Compra a proveedor");
-        obtenerFechaActual(t.fechaRegistro);
-        t.eliminado = false;
+        t.setIdRelacionado(idProv); 
+        t.setCantidad(0, cantidad); 
+        t.setPrecioUnitario(0, precioUnit);
+        t.setTotal(total);
+        t.setTipo("COMPRA");
+        t.setDescripcion("Compra a proveedor");
+        
+        char fecha[11];
+        obtenerFechaActual(fecha);
+        t.setFechaRegistro(fecha);
+        t.setEliminado(false);
 
         registrarTransaccionEnDisco(t);
 
         cout << "\nInventario actualizado y compra registrada exitosamente.\n";
-    } else {
+    }else {
         cout << "\nERROR CRITICO: No se pudo actualizar el stock en el archivo.\n";
     }
 }
 
 // 2.5.2
 
-  void registrarVenta() {
+ void registrarVenta() {
     cout << "\n=== REGISTRAR VENTA (DISCO) ===\n";
 
     // 1. Validar Producto
@@ -2365,7 +2447,8 @@ void registrarCompra() { // Sin Tienda*
         return;
     }
 
-    if (p.stock <= 0) {
+    // AJUSTE: Usar getStock()
+    if (p.getStock() <= 0) {
         cout << "ERROR: Producto sin stock disponible.\n";
         return;
     }
@@ -2383,49 +2466,49 @@ void registrarCompra() { // Sin Tienda*
     }
 
     // 3. Cantidad y Cálculos
-    cout << "Stock disponible: " << p.stock << endl;
+    cout << "Stock disponible: " << p.getStock() << endl;
     int cantidad = solicitarEnteroPositivo("Cantidad vendida (>0): ");
 
-    if (cantidad > p.stock) {
+    if (cantidad > p.getStock()) {
         cout << "ERROR: Stock insuficiente.\n";
         return;
     }
 
-    float precioUnit = p.precio;
+    // AJUSTE: Usar getPrecio()
+    float precioUnit = p.getPrecio();
     float total = precioUnit * (float)cantidad;
 
-    // 4. Resumen
+    // 4. Resumen (Usar Getters)
     cout << "\n=== RESUMEN DE VENTA ===\n";
-    cout << "Producto: " << p.nombre << endl;
-    cout << "Cliente:  " << cli.nombre << endl;
+    cout << "Producto: " << p.getNombre() << endl;
+    cout << "Cliente:  " << cli.getNombre() << endl;
     cout << "Cantidad: " << cantidad << endl;
     cout << "Total:     " << total << endl;
 
     if (!confirmar("¿Confirmar venta? (S/N): ")) return;
 
     // 5. REGISTRO EN DISCO
-    // A. Restar stock en productos.bin
-    if (actualizarStockProducto(idProd, -cantidad)) { // Mandamos negativo para restar
+    if (actualizarStockProducto(idProd, -cantidad)) { 
         
         Transaccion t;
-        // Limpiamos los arreglos de la transacción
-        memset(t.idProductos, 0, sizeof(t.idProductos));
-        memset(t.cantidades, 0, sizeof(t.cantidades));
-        // t.preciosUnitarios es el nombre correcto según el struct nuevo
-        memset(t.precioUnitario, 0, sizeof(t.precioUnitario));
+        // Limpiamos los datos internos de la transacción mediante sus setters/métodos
+        // Si tu clase Transaccion tiene un método para limpiar arreglos, úsalo aquí.
 
-        // Asignamos a la posición [0] porque es una venta de un solo item (por ahora)
-        t.idRelacionado = idCli;
-        t.idProductos[0] = idProd;
-        t.cantidades[0] = cantidad;
-        t.precioUnitario[0] = precioUnit;
-        t.numItems = 1; // Indicamos que usamos 1 espacio de los 20
+        t.setIdRelacionado(idCli);
+        // Asignamos al índice 0 porque es una venta simple
+        t.setIdProductoEnIndice(0, idProd);
+        t.setCantidad(0, cantidad);
+        t.setPrecioUnitario(0, precioUnit);
+        t.setNumItems(1); 
         
-        t.total = total;
-        strcpy(t.tipo, "VENTA");
-        strcpy(t.descripcion, "Venta a cliente");
-        obtenerFechaActual(t.fechaRegistro); // Asegúrate que el campo se llame fechaRegistro
-        t.eliminado = false;
+        t.setTotal(total);
+        t.setTipo("VENTA");
+        t.setDescripcion("Venta a cliente");
+        
+        char fecha[11];
+        obtenerFechaActual(fecha);
+        t.setFechaRegistro(fecha); 
+        t.setEliminado(false);
 
         registrarTransaccionEnDisco(t);
 
@@ -2459,15 +2542,13 @@ void buscarTransacciones() {
     int idBuscado = -1;
     char filtro[50] = "";
 
-    // Pedimos el criterio antes de entrar al bucle para no pedirlo 100 veces
-    if (op == 1 || op == 2 || op == 3) {
+    if (op >= 1 && op <= 3) {
         cout << "Ingrese el ID a buscar: ";
         cin >> idBuscado; cin.ignore();
     } else if (op == 4) {
         solicitarString("Ingrese fecha (YYYY-MM-DD): ", filtro, 11);
     }
 
-    // Saltamos el Header
     fseek(f, sizeof(ArchivoHeader), SEEK_SET);
 
     Transaccion t;
@@ -2475,35 +2556,38 @@ void buscarTransacciones() {
     cout << "\n=== RESULTADOS ENCONTRADOS ===\n";
 
     while (fread(&t, sizeof(Transaccion), 1, f)) {
-        if (t.eliminado) continue;
+        // AJUSTE: Usar getter isEliminado()
+        if (t.isEliminado()) continue;
 
         bool coincide = false;
 
         switch (op) {
-            case 1: // Por ID de factura
-                coincide = (t.id == idBuscado);
+            case 1: // ID de factura (ID propio de la transacción)
+                coincide = (t.getId() == idBuscado);
                 break;
 
-            case 2: // Por ID de producto (Buscamos en el arreglo de 20)
-                for (int j = 0; j < t.numItems; j++) {
-                    if (t.idProductos[j] == idBuscado) {
+            case 2: // ID de producto (recorrer el arreglo interno)
+                // AJUSTE: Usar getNumItems() e getIdProductoEnIndice(j)
+                for (int j = 0; j < t.getNumItems(); j++) {
+                    if (t.getIdProducto(j) == idBuscado) {
                         coincide = true;
                         break;
                     }
                 }
                 break;
 
-            case 3: // Por ID de Relacionado (Cliente o Proveedor)
-                coincide = (t.idRelacionado == idBuscado);
+            case 3: // ID Relacionado (Cliente o Proveedor)
+                coincide = (t.getIdRelacionado() == idBuscado);
                 break;
 
             case 4: // Por Fecha
-                coincide = (strcmp(t.fechaRegistro, filtro) == 0);
+                // AJUSTE: Usar getFechaRegistro()
+                coincide = (strcmp(t.getFecha(), filtro) == 0);
                 break;
         }
 
         if (coincide) {
-            mostrarDetalleTransaccion(t); // Ahora recibe la transaccion directamente
+            mostrarDetalleTransaccion(t); 
             encontrado = true;
             cout << "-------------------------------------------\n";
         }
@@ -2523,7 +2607,6 @@ void listarTransacciones() {
         return;
     }
 
-    // Leemos el Header para control
     ArchivoHeader h;
     fread(&h, sizeof(ArchivoHeader), 1, f);
 
@@ -2533,28 +2616,31 @@ void listarTransacciones() {
         return;
     }
 
-    encabezadoTransacciones(); // Tu función de formato de tabla
+    encabezadoTransacciones(); 
 
     Transaccion t;
     int contActivas = 0;
     float recaudacionVentas = 0;
     float inversionCompras = 0;
 
-    // Recorrido secuencial del archivo
     while (fread(&t, sizeof(Transaccion), 1, f)) {
-        if (!t.eliminado) {
-            filaTransaccion(t); // Imprime la línea resumen de la factura
+        // AJUSTE: Usar isEliminado()
+        if (!t.isEliminado()) {
+            filaTransaccion(t); 
             contActivas++;
 
-            // Acumuladores para reporte rápido
-            if (strcmp(t.tipo, "VENTA") == 0) recaudacionVentas += t.total;
-            else if (strcmp(t.tipo, "COMPRA") == 0) inversionCompras += t.total;
+            // AJUSTE: Usar getTipo() y getTotal()
+            if (strcmp(t.getTipo(), "VENTA") == 0) {
+                recaudacionVentas += t.getTotal();
+            } else if (strcmp(t.getTipo(), "COMPRA") == 0) {
+                inversionCompras += t.getTotal();
+            }
         }
     }
 
     pieTransacciones();
 
-    // Resumen financiero rápido (Muy útil para la sustentación en la URU)
+    // Resumen financiero rápido
     cout << "\n=== RESUMEN DE OPERACIONES ===";
     cout << "\nTotal Transacciones: " << contActivas;
     cout << "\nTotal en Ventas:     $" << recaudacionVentas;
@@ -2586,7 +2672,7 @@ void cancelarTransaccion() {
     // 1. Buscar la transacción en el archivo
     fseek(f, sizeof(ArchivoHeader), SEEK_SET);
     while (fread(&t, sizeof(Transaccion), 1, f)) {
-        if (t.id == idBuscado && !t.eliminado) {
+        if (t.getId() == idBuscado && !t.isEliminado()) {
             posicionTransaccion = ftell(f) - sizeof(Transaccion);
             encontrada = true;
             break;
@@ -2607,22 +2693,23 @@ void cancelarTransaccion() {
     }
 
     // 3. REVERTIR STOCK DE TODOS LOS PRODUCTOS EN LA FACTURA
-    // Recorremos el arreglo de items que tiene la transaccion
-    for (int i = 0; i < t.numItems; i++) {
-        int idP = t.idProductos[i];
-        int cant = t.cantidades[i];
+    for (int i = 0; i < t.getNumItems(); i++) {
+        // AJUSTE: Usar getters para el arreglo interno
+        int idP = t.getIdProducto(i);
+        int cant = t.getCantidad(i);
 
-        if (strcmp(t.tipo, "COMPRA") == 0) {
-            // Si cancelo una compra, RESTO del stock (porque el producto nunca llego)
+        // AJUSTE: Usar getTipo()
+        if (strcmp(t.getTipo(), "COMPRA") == 0) {
+            // Cancelar compra: Restamos (el stock que entró, ahora sale)
             actualizarStockProducto(idP, -cant);
         } else {
-            // Si cancelo una venta, SUMO al stock (porque el producto "volvio" a la tienda)
+            // Cancelar venta: Sumamos (el producto vuelve a la tienda)
             actualizarStockProducto(idP, cant);
         }
     }
 
     // 4. MARCAR COMO ELIMINADA (Borrado Lógico)
-    t.eliminado = true;
+    t.setEliminado(true);
     fseek(f, posicionTransaccion, SEEK_SET);
     fwrite(&t, sizeof(Transaccion), 1, f);
     fclose(f);
@@ -2726,8 +2813,5 @@ int main() {
 
     } while (opcion != 5);
 
-    // Ya no necesitas "guardarAlFinal" porque cada vez que registras algo
-    // en los submenús, ya se guardó automáticamente en el .bin.
-    
     return 0;
 }
